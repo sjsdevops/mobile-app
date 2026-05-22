@@ -11,12 +11,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors } from '../../theme/colors';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { width } = Dimensions.get('window');
 const LOGO_SIZE = width * 0.38;
 
 export function SplashScreen() {
   const router = useRouter();
+  const { restoreSession } = useAuth();
 
   // Animated values
   const logoScale = useRef(new Animated.Value(0.4)).current;
@@ -57,8 +59,14 @@ export function SplashScreen() {
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
       }),
-    ]).start(() => {
-      router.replace('/login');
+    ]).start(async () => {
+      // Check if user has a valid session
+      const hasSession = await restoreSession();
+      if (hasSession) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/login');
+      }
     });
   }, []);
 

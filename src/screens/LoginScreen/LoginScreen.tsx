@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { colors } from '../../theme/colors';
 import { useLoginVM } from './LoginScreen.vm';
 import { useAuth } from '../../contexts/AuthContext';
+import { registerForPushNotifications, sendTokenToBackend } from '../../services/pushNotifications';
 import type { UserRole } from '../../types/auth';
 
 const ROLE_TABS: { label: string; value: UserRole }[] = [
@@ -29,12 +30,23 @@ export function LoginScreen() {
   const router = useRouter();
   const vm = useLoginVM();
 
-  const { setUser } = useAuth();
+  const { setUser, setPermissions } = useAuth();
 
   async function onSignIn() {
     const result = await vm.handleLogin();
-    if (result.success) {
-      setUser({ role: vm.role, userId: result.userId });
+    if (result.success && result.user) {
+      setUser(result.user);
+      if (result.permissions) {
+        setPermissions(result.permissions);
+      }
+
+      // Register for push notifications after successful login
+      registerForPushNotifications().then((pushToken) => {
+        if (pushToken && result.user) {
+          sendTokenToBackend(result.user.id, pushToken);
+        }
+      });
+
       router.replace('/(tabs)');
     }
   }
@@ -132,7 +144,7 @@ export function LoginScreen() {
           </View>
 
           {/* Forgot password */}
-          <Pressable style={styles.forgotContainer} onPress={() => {}}>
+          <Pressable style={styles.forgotContainer} onPress={() => { }}>
             <Text style={styles.forgotText}>Forgot Password</Text>
           </Pressable>
 

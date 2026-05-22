@@ -26,6 +26,7 @@ import {
 import type { FC } from 'react';
 import type { IconProps } from 'iconsax-react-nativejs';
 import { colors } from '../../theme/colors';
+import { useDashboardVM } from './DashboardScreen.vm';
 
 type IconComponent = FC<IconProps>;
 
@@ -43,44 +44,44 @@ type Period = {
 
 const STUDENT_ROUTINE: Record<string, Period[]> = {
   mon: [
-    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Physics',     className: 'Class 8-B'  },
-    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Mathematics', className: 'Class 8-B'  },
+    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Physics', className: 'Class 8-B' },
+    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Mathematics', className: 'Class 8-B' },
     { id: 'b1', startTime: '09:45', endTime: '10:15', subject: '', className: '', isBreak: true, breakLabel: 'Morning Break' },
-    { id: '3', startTime: '10:15', endTime: '11:00', subject: 'Chemistry',   className: 'Class 8-B' },
-    { id: '4', startTime: '11:00', endTime: '11:45', subject: 'English',     className: 'Class 8-B' },
-    { id: '5', startTime: '11:45', endTime: '12:30', subject: 'Social',      className: 'Class 8-B' },
+    { id: '3', startTime: '10:15', endTime: '11:00', subject: 'Chemistry', className: 'Class 8-B' },
+    { id: '4', startTime: '11:00', endTime: '11:45', subject: 'English', className: 'Class 8-B' },
+    { id: '5', startTime: '11:45', endTime: '12:30', subject: 'Social', className: 'Class 8-B' },
   ],
   tue: [
-    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Physics',     className: 'Class 8-B'  },
-    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Hindi',       className: 'Class 8-B'  },
+    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Physics', className: 'Class 8-B' },
+    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Hindi', className: 'Class 8-B' },
     { id: 'b1', startTime: '09:45', endTime: '10:15', subject: '', className: '', isBreak: true, breakLabel: 'Morning Break' },
     { id: '3', startTime: '10:15', endTime: '11:00', subject: 'Mathematics', className: 'Class 8-B' },
-    { id: '4', startTime: '11:00', endTime: '11:45', subject: 'Chemistry',   className: 'Class 8-B' },
+    { id: '4', startTime: '11:00', endTime: '11:45', subject: 'Chemistry', className: 'Class 8-B' },
   ],
   wed: [
-    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Chemistry',   className: 'Class 8-B'  },
-    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Physics',     className: 'Class 8-B' },
+    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Chemistry', className: 'Class 8-B' },
+    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Physics', className: 'Class 8-B' },
     { id: 'b1', startTime: '09:45', endTime: '10:15', subject: '', className: '', isBreak: true, breakLabel: 'Morning Break' },
-    { id: '3', startTime: '10:15', endTime: '11:00', subject: 'Mathematics', className: 'Class 8-B'  },
-    { id: '4', startTime: '11:00', endTime: '11:45', subject: 'English',     className: 'Class 8-B' },
+    { id: '3', startTime: '10:15', endTime: '11:00', subject: 'Mathematics', className: 'Class 8-B' },
+    { id: '4', startTime: '11:00', endTime: '11:45', subject: 'English', className: 'Class 8-B' },
   ],
   thu: [
-    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Mathematics', className: 'Class 8-B'  },
-    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Physics',     className: 'Class 8-B' },
+    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Mathematics', className: 'Class 8-B' },
+    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Physics', className: 'Class 8-B' },
     { id: 'b1', startTime: '09:45', endTime: '10:15', subject: '', className: '', isBreak: true, breakLabel: 'Morning Break' },
-    { id: '3', startTime: '10:15', endTime: '11:00', subject: 'Chemistry',   className: 'Class 8-B'  },
-    { id: '4', startTime: '11:00', endTime: '11:45', subject: 'Social',      className: 'Class 8-B' },
+    { id: '3', startTime: '10:15', endTime: '11:00', subject: 'Chemistry', className: 'Class 8-B' },
+    { id: '4', startTime: '11:00', endTime: '11:45', subject: 'Social', className: 'Class 8-B' },
   ],
   fri: [
-    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Physics',     className: 'Class 8-B' },
-    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Chemistry',   className: 'Class 8-B'  },
+    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Physics', className: 'Class 8-B' },
+    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Chemistry', className: 'Class 8-B' },
     { id: 'b1', startTime: '09:45', endTime: '10:15', subject: '', className: '', isBreak: true, breakLabel: 'Morning Break' },
-    { id: '3', startTime: '10:15', endTime: '11:00', subject: 'Mathematics', className: 'Class 8-B'  },
-    { id: '4', startTime: '11:00', endTime: '11:45', subject: 'English',     className: 'Class 8-B' },
+    { id: '3', startTime: '10:15', endTime: '11:00', subject: 'Mathematics', className: 'Class 8-B' },
+    { id: '4', startTime: '11:00', endTime: '11:45', subject: 'English', className: 'Class 8-B' },
   ],
   sat: [
-    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Physics',     className: 'Class 8-B'  },
-    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Mathematics', className: 'Class 8-B'  },
+    { id: '1', startTime: '08:00', endTime: '08:45', subject: 'Physics', className: 'Class 8-B' },
+    { id: '2', startTime: '09:00', endTime: '09:45', subject: 'Mathematics', className: 'Class 8-B' },
   ],
   sun: [],
 };
@@ -99,13 +100,13 @@ function getNextClass(): { subject: string; time: string; className: string } | 
   const dayIndex = now.getDay();
   const dayKey = DAY_KEYS[dayIndex];
   const currentMinutes = timeToMinutes(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
-  
+
   const todaySchedule = STUDENT_ROUTINE[dayKey] || [];
   const nextPeriod = todaySchedule.find((p) => {
     const startMinutes = timeToMinutes(p.startTime);
     return startMinutes >= currentMinutes && !p.isBreak;
   });
-  
+
   if (nextPeriod) {
     const [h, m] = nextPeriod.startTime.split(':');
     const hour = parseInt(h);
@@ -119,29 +120,27 @@ function getNextClass(): { subject: string; time: string; className: string } | 
       className: nextPeriod.className,
     };
   }
-  
+
   return null;
 }
-
-type IconComponent = FC<IconProps>;
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 type GridItemData = { id: string; label: string; bg: string; icon: IconComponent; iconColor: string };
 
 const CLASS_MANAGEMENT_ITEMS: GridItemData[] = [
-  { id: 'timetable',  label: 'Class Time Table',   bg: colors.primary.alpha,   icon: Calendar1,      iconColor: colors.primary[300] },
-  { id: 'lesson',     label: 'Lesson Plan',         bg: colors.purple.alpha,    icon: Book1,          iconColor: colors.purple[300] },
-  { id: 'attendance', label: 'Attendance',           bg: colors.secondary.alpha, icon: ClipboardTick,  iconColor: colors.secondary[300] },
-  { id: 'homework',   label: 'Homework',             bg: colors.green.alpha,     icon: NoteText,       iconColor: colors.green[200] },
-  { id: 'exams',      label: 'Exams',                bg: colors.purple.alpha,    icon: TaskSquare,     iconColor: colors.purple[300] },
-  { id: 'case',       label: 'Student Case Study',   bg: colors.purple.alpha,    icon: Teacher,        iconColor: colors.purple[400] },
+  { id: 'timetable', label: 'Class Time Table', bg: colors.primary.alpha, icon: Calendar1, iconColor: colors.primary[300] },
+  { id: 'lesson', label: 'Lesson Plan', bg: colors.purple.alpha, icon: Book1, iconColor: colors.purple[300] },
+  { id: 'attendance', label: 'Attendance', bg: colors.secondary.alpha, icon: ClipboardTick, iconColor: colors.secondary[300] },
+  { id: 'homework', label: 'Homework', bg: colors.green.alpha, icon: NoteText, iconColor: colors.green[200] },
+  { id: 'exams', label: 'Exams', bg: colors.purple.alpha, icon: TaskSquare, iconColor: colors.purple[300] },
+  { id: 'case', label: 'Student Case Study', bg: colors.purple.alpha, icon: Teacher, iconColor: colors.purple[400] },
 ];
 
 const WORKSPACE_ITEMS: GridItemData[] = [
-  { id: 'myattendance', label: 'My Attendance', bg: colors.yellow.alpha,    icon: Timer1,          iconColor: colors.yellow[200] },
-  { id: 'payroll',      label: 'Payroll',       bg: colors.primary.alpha,   icon: EmptyWallet,     iconColor: colors.primary[300] },
-  { id: 'leave',        label: 'Leave Tracker', bg: colors.secondary.alpha, icon: BrifecaseTimer,  iconColor: colors.secondary[300] },
+  { id: 'myattendance', label: 'My Attendance', bg: colors.yellow.alpha, icon: Timer1, iconColor: colors.yellow[200] },
+  { id: 'payroll', label: 'Payroll', bg: colors.primary.alpha, icon: EmptyWallet, iconColor: colors.primary[300] },
+  { id: 'leave', label: 'Leave Tracker', bg: colors.secondary.alpha, icon: BrifecaseTimer, iconColor: colors.secondary[300] },
 ];
 
 function getGreeting() {
@@ -184,6 +183,17 @@ function GridItem({
 
 export function DashboardScreen() {
   const router = useRouter();
+  const { user, visibleClassManagementIds, visibleWorkspaceIds } = useDashboardVM();
+
+  const filteredClassItems = CLASS_MANAGEMENT_ITEMS.filter((item) =>
+    visibleClassManagementIds.includes(item.id)
+  );
+  const filteredWorkspaceItems = WORKSPACE_ITEMS.filter((item) =>
+    visibleWorkspaceIds.includes(item.id)
+  );
+
+  const displayName = user?.firstName || 'User';
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface.light} />
@@ -200,7 +210,7 @@ export function DashboardScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/profile')}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>K</Text>
+              <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -211,7 +221,7 @@ export function DashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Greeting ── */}
-        <Text style={styles.greeting}>Hey Kiran! {getGreeting()}</Text>
+        <Text style={styles.greeting}>Hey {displayName}! {getGreeting()}</Text>
         <Text style={styles.quote}>"Great dreams of great dreamers are always transcended."</Text>
 
         {/* ── Assigned class card ── */}
@@ -247,40 +257,48 @@ export function DashboardScreen() {
         </View>
 
         {/* ── Class Management ── */}
-        <SectionTitle title="Class Management" />
-        <View style={styles.grid}>
-          {CLASS_MANAGEMENT_ITEMS.map((item) => (
-            <GridItem
-              key={item.id}
-              label={item.label}
-              bg={item.bg}
-              icon={item.icon}
-              iconColor={item.iconColor}
-              onPress={
-                item.id === 'timetable'  ? () => router.push('/timetable')  :
-                item.id === 'lesson'     ? () => router.push('/lesson-plan') :
-                item.id === 'attendance' ? () => router.push('/attendance') :
-                item.id === 'exams'      ? () => router.push('/(tabs)/exams') :
-                undefined
-              }
-            />
-          ))}
-        </View>
+        {filteredClassItems.length > 0 && (
+          <>
+            <SectionTitle title="Class Management" />
+            <View style={styles.grid}>
+              {filteredClassItems.map((item) => (
+                <GridItem
+                  key={item.id}
+                  label={item.label}
+                  bg={item.bg}
+                  icon={item.icon}
+                  iconColor={item.iconColor}
+                  onPress={
+                    item.id === 'timetable' ? () => router.push('/timetable') :
+                      item.id === 'lesson' ? () => router.push('/lesson-plan') :
+                        item.id === 'attendance' ? () => router.push('/attendance') :
+                          item.id === 'exams' ? () => router.push('/(tabs)/exams') :
+                            undefined
+                  }
+                />
+              ))}
+            </View>
+          </>
+        )}
 
         {/* ── My Workspace ── */}
-        <SectionTitle title="My Workspace" />
-        <View style={styles.grid}>
-          {WORKSPACE_ITEMS.map((item) => (
-            <GridItem
-              key={item.id}
-              label={item.label}
-              bg={item.bg}
-              icon={item.icon}
-              iconColor={item.iconColor}
-              onPress={item.id === 'myattendance' ? () => router.push('/my-attendance') : undefined}
-            />
-          ))}
-        </View>
+        {filteredWorkspaceItems.length > 0 && (
+          <>
+            <SectionTitle title="My Workspace" />
+            <View style={styles.grid}>
+              {filteredWorkspaceItems.map((item) => (
+                <GridItem
+                  key={item.id}
+                  label={item.label}
+                  bg={item.bg}
+                  icon={item.icon}
+                  iconColor={item.iconColor}
+                  onPress={item.id === 'myattendance' ? () => router.push('/my-attendance') : undefined}
+                />
+              ))}
+            </View>
+          </>
+        )}
 
         <View style={{ height: 16 }} />
       </ScrollView>
@@ -290,7 +308,7 @@ export function DashboardScreen() {
 
 export function StudentDashboardScreen() {
   const router = useRouter();
-  
+
   const nextClass = useMemo(() => {
     return getNextClass();
   }, []);
@@ -341,14 +359,14 @@ export function StudentDashboardScreen() {
 
         <SectionTitle title="Today's Overview" />
         <View style={styles.overviewCard}>
-          <View style={[styles.overviewIconCircle, { backgroundColor: colors.yellow.alpha }]}> 
+          <View style={[styles.overviewIconCircle, { backgroundColor: colors.yellow.alpha }]}>
             <Timer1 color={colors.yellow[200]} size={24} variant="Bold" />
           </View>
           <View>
             <Text style={styles.overviewSubLabel}>Next Class</Text>
             <Text style={styles.overviewValue}>
-              {nextClass 
-                ? `${nextClass.time} - ${nextClass.subject}` 
+              {nextClass
+                ? `${nextClass.time} - ${nextClass.subject}`
                 : 'No classes for today'}
             </Text>
           </View>
@@ -364,11 +382,11 @@ export function StudentDashboardScreen() {
               icon={item.icon}
               iconColor={item.iconColor}
               onPress={
-                item.id === 'timetable'  ? () => router.push('/timetable')  :
-                item.id === 'lesson'     ? () => router.push('/lesson-plan') :
-                item.id === 'attendance' ? () => router.push('/view-attendance') :
-                item.id === 'exams'      ? () => router.push('/student-exam-results') :
-                undefined
+                item.id === 'timetable' ? () => router.push('/timetable') :
+                  item.id === 'lesson' ? () => router.push('/lesson-plan') :
+                    item.id === 'attendance' ? () => router.push('/view-attendance') :
+                      item.id === 'exams' ? () => router.push('/student-exam-results') :
+                        undefined
               }
             />
           ))}
