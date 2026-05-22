@@ -1,0 +1,51 @@
+{
+  "name": "school-erp-mobile-app",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@gluestack-style/react": "^1.0.57",
+    "@gluestack-ui/config": "^1.1.20",
+    "@gluestack-ui/themed": "^1.1.73",
+    "@react-native-aria/accordion": "^0.0.2",
+    "@react-native-aria/checkbox": "^0.2.10",
+    "@react-native-aria/dialog": "^0.0.5",
+    "@react-native-aria/focus": "^0.2.9",
+    "@react-native-aria/interactions": "^0.2.16",
+    "@react-native-aria/menu": "^0.2.15",
+    "@react-native-aria/overlays": "^0.3.15",
+    "@react-native-aria/radio": "^0.2.13",
+    "@react-native-aria/slider": "^0.2.12",
+    "@react-native-aria/utils": "^0.2.12",
+    "axios": "^1.15.0",
+    "babel-preset-expo": "~54.0.10",
+    "expo": "~54.0.33",
+    "expo-constants": "~18.0.13",
+    "expo-linking": "~8.0.11",
+    "expo-location": "~19.0.8",
+    "expo-router": "~6.0.23",
+    "expo-status-bar": "~3.0.9",
+    "iconsax-react-nativejs": "^0.0.8",
+    "nativewind": "^4.2.3",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-css-interop": "^0.1.22",
+    "react-native-maps": "1.20.1",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-svg": "15.12.1",
+    "react-native-web": "^0.21.0",
+    "tailwindcss": "^3.4.19"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.0",
+    "typescript": "~5.9.2"
+  },
+  "private": true
+}
