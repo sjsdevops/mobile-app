@@ -14,8 +14,10 @@ export const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    const authToken = config.headers?.['auth-token'] || 'none';
     console.log(
       `📤 [API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`,
+      `\n   auth-token: ${authToken}`,
       config.data ? `\n   Body: ${JSON.stringify(config.data)}` : '',
     );
     return config;

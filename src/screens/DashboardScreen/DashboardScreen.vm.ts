@@ -1,15 +1,15 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { getEmployeeProfile, type EmployeeProfile } from '../../services/profileService';
 
 /**
  * Maps dashboard card IDs to their corresponding mobile permission keys.
- * Cards are shown if the user has the matching permission_key enabled.
  */
 const CARD_PERMISSION_MAP: Record<string, string> = {
     timetable: 'mobile_class_time_table',
-    lesson: 'mobile_lesson_plan',
-    attendance: 'mobile_attendance',
-    homework: 'mobile_homework',
+    lesson: 'mobile_lession_plan',
+    attendance: 'mobile_class_attendance',
+    homework: 'mobile_home_work',
     exams: 'mobile_exams',
     case: 'mobile_student_case_study',
     myattendance: 'mobile_my_attendance',
@@ -17,27 +17,69 @@ const CARD_PERMISSION_MAP: Record<string, string> = {
     leave: 'mobile_leave_tracker',
 };
 
+export interface AssignedClassCard {
+    classId: string;
+    className: string;
+    sectionName: string;
+    classType: string;
+    totalStudents: number;
+    todayAttendancePercentage: number;
+}
+
 export function useDashboardVM() {
     const { user, permissions, hasPermission } = useAuth();
+    const [assignedClasses, setAssignedClasses] = useState<AssignedClassCard[]>([]);
+    const [profileLoading, setProfileLoading] = useState(false);
+    const [attendancePercentage, setAttendancePercentage] = useState<number | null>(null);
+
+    // Fetch employee profile for assigned classes
+    useEffect(() => {
+        if (!user || user.role === 'student') return;
+
+        const fetchProfile = async () => {
+            setProfileLoading(true);
+            try {
+                const data = await getEmployeeProfile(user.id);
+                const cards: AssignedClassCard[] = [];
+                for (const cls of data.assigned_classes ?? []) {
+                    for (const section of cls.sections ?? []) {
+                        cards.push({
+                            classId: cls.class_id,
+                            className: cls.class_name,
+                            sectionName: section.section_name,
+                            classType: cls.class_type,
+                            totalStudents: section.total_students ?? 0,
+                            todayAttendancePercentage: section.today_attendance_percentage ?? 0,
+                        });
+                    }
+                }
+                setAssignedClasses(cards);
+                setAttendancePercentage(data.attendance_percentage);
+            } catch (error) {
+                console.error('[Dashboard] Failed to fetch profile:', error);
+            } finally {
+                setProfileLoading(false);
+            }
+        };
+
+        fetchProfile();
+    }, [user]);
 
     // Filter class management cards based on permissions
     const visibleClassManagementIds = useMemo(() => {
         const allIds = ['timetable', 'lesson', 'attendance', 'homework', 'exams', 'case'];
 
-        // If no permissions loaded yet (empty array), show nothing until loaded
-        // But if permissions were fetched and user has some, filter accordingly
         if (permissions.length === 0) return [];
 
         return allIds.filter((id) => {
             const permKey = CARD_PERMISSION_MAP[id];
-            if (!permKey) return true; // No mapping = always show
+            if (!permKey) return true;
             return hasPermission(permKey);
         });
     }, [permissions, hasPermission]);
 
-    // Filter workspace cards based on permissions
+    // Workspace cards always shown for employees
     const visibleWorkspaceIds = useMemo(() => {
-        // Workspace cards are always shown for all employee roles (not permission-gated)
         if (user?.role === 'student') return [];
         return ['myattendance', 'payroll', 'leave'];
     }, [user]);
@@ -48,5 +90,8 @@ export function useDashboardVM() {
         visibleClassManagementIds,
         visibleWorkspaceIds,
         hasPermission,
+        assignedClasses,
+        attendancePercentage,
+        profileLoading,
     };
 }

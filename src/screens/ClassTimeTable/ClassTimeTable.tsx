@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   FlatList,
   ScrollView,
   StatusBar,
@@ -104,8 +105,8 @@ export function ClassTimeTable() {
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Class Routine</Text>
-          <Text style={styles.headerSub}>Today Class 8-B</Text>
+          <Text style={styles.headerTitle}>{vm.headerInfo.title}</Text>
+          <Text style={styles.headerSub}>{vm.headerInfo.subtitle}</Text>
         </View>
 
         <TouchableOpacity style={styles.circleBtn}>
@@ -150,20 +151,26 @@ export function ClassTimeTable() {
       </ScrollView>
 
       {/* ── Periods ── */}
-      <FlatList
-        data={vm.periods}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <PeriodRow period={item} status={vm.getPeriodStatus(item)} />
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No classes scheduled</Text>
-          </View>
-        }
-      />
+      {vm.loading ? (
+        <View style={styles.empty}>
+          <ActivityIndicator size="large" color={colors.primary[300]} />
+        </View>
+      ) : (
+        <FlatList
+          data={vm.periods}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <PeriodRow period={item} status={vm.getPeriodStatus(item)} />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No classes scheduled</Text>
+            </View>
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }

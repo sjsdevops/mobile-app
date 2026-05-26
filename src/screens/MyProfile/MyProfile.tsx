@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   Alert,
   ScrollView,
@@ -18,9 +18,11 @@ import {
   Shield,
 } from 'iconsax-react-nativejs';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { useMyProfileVM } from './MyProfile.vm';
+import { useAuth } from '../../contexts/AuthContext';
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -56,7 +58,15 @@ function SettingRow({
 
 export function ProfileScreen() {
   const router = useRouter();
-  const { profile, settings } = useMyProfileVM();
+  const { profile, settings, loading, refreshProfile } = useMyProfileVM();
+  const { logout } = useAuth();
+
+  // Refresh profile data when screen comes into focus (e.g., after editing)
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile])
+  );
 
   function handleSettingPress(id: string, route?: string) {
     if (route) {
@@ -72,7 +82,10 @@ export function ProfileScreen() {
         Alert.alert('Help & Support', 'Support content will be available soon.');
         break;
       case 'policies':
-        Alert.alert('Policies', 'School policies will be available soon.');
+        router.push({
+          pathname: '/webview',
+          params: { url: 'https://sreejayamschool.edu.in/legal/privacy-policy', title: 'Terms & Policies' },
+        });
         break;
       default:
         break;
@@ -80,12 +93,15 @@ export function ProfileScreen() {
   }
 
   function handleLogout() {
-    Alert.alert('Log Out', 'You have been logged out.', [
+    Alert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Log Out',
         style: 'destructive',
-        onPress: () => router.replace('/login'),
+        onPress: async () => {
+          await logout();
+          router.replace('/login');
+        },
       },
     ]);
   }
@@ -94,7 +110,7 @@ export function ProfileScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface.light} />
 
-      <ScreenHeader title="My Profile" />
+      <ScreenHeader title="My Profile" onBack={() => router.navigate('/(tabs)')} />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.profileCard}>
@@ -107,11 +123,11 @@ export function ProfileScreen() {
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryValue}>{profile.experience}</Text>
-              <Text style={styles.summaryLabel}>Years Experience</Text>
+              <Text style={styles.summaryLabel}>Attendance</Text>
             </View>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryValue}>{profile.classTeacher}</Text>
-              <Text style={styles.summaryLabel}>Class Teacher</Text>
+              <Text style={styles.summaryLabel}>Assigned Sections</Text>
             </View>
           </View>
         </View>

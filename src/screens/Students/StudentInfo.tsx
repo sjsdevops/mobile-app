@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -49,10 +50,21 @@ export function StudentInfoScreen() {
   const vm = useStudentInfoVM(studentId);
   const [activeTab, setActiveTab] = useState('profile');
 
+  if (vm.loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <ScreenHeader title="Student Info" onBack={() => router.back()} />
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color={colors.primary[300]} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!vm.student) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <ScreenHeader title="Student Info" onBack={() => router.replace('/students')} />
+        <ScreenHeader title="Student Info" onBack={() => router.back()} />
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Student not found.</Text>
         </View>
@@ -94,12 +106,17 @@ export function StudentInfoScreen() {
           <>
             <Text style={styles.sectionTitle}>PERSONAL INFORMATION</Text>
             <View style={styles.infoCard}>
+              <InfoRow label="Gender" value={vm.student.gender} />
               <InfoRow label="Blood Group" value={vm.student.bloodGroup} />
               <InfoRow label="Date of Birth" value={vm.student.dob} />
-              <InfoRow label="Email ID" value={vm.student.email} />
+              <InfoRow label="Nationality" value={vm.student.nationality} />
+              <InfoRow label="Mother Tongue" value={vm.student.motherTongue} />
+              <InfoRow label="Email" value={vm.student.email} />
               <InfoRow label="Parent's Name" value={vm.student.parentName} />
               <InfoRow label="Phone Number" value={vm.student.phone} />
-              <InfoRow label="Date of Joining" value={vm.student.joined} />
+              <InfoRow label="Address" value={vm.student.address} />
+              <InfoRow label="Admission Date" value={vm.student.joined} />
+              <InfoRow label="Attendance" value={`${vm.student.attendancePercentage}%`} />
             </View>
           </>
         )}

@@ -11,15 +11,16 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ArrowDown2 } from 'iconsax-react-nativejs';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { colors } from '../../theme/colors';
 import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader, CircleIconBtn } from '../../components/ui/ScreenHeader';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { StateMessage } from '../../components/ui/StateMessage';
+import { ModalDropdown } from '../../components/ui/ModalDropdown';
 import { useLessonPlanVM, type Chapter, type FilterTab } from './LessonPlanScreen.vm';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -68,55 +69,6 @@ function FilterChips({
 }
 
 // ─── Dropdown Component ────────────────────────────────────────────────────────
-
-type DropdownProps = {
-  label: string;
-  value: string;
-  options: Array<{ id: string; label: string }>;
-  onSelect: (id: string) => void;
-};
-
-function Dropdown({ label, value, options, onSelect }: DropdownProps) {
-  const [open, setOpen] = useState(false);
-  const selectedLabel = options.find(opt => opt.id === value)?.label || label;
-
-  return (
-    <View style={sStyles.dropdownContainer}>
-      <Pressable
-        style={sStyles.dropdownButton}
-        onPress={() => setOpen(!open)}
-      >
-        <Text style={sStyles.dropdownButtonText}>{selectedLabel}</Text>
-        <ArrowDown2 size={16} color={colors.neutral[500]} />
-      </Pressable>
-
-      {open && (
-        <View style={sStyles.dropdownMenu}>
-          {options.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={sStyles.dropdownOption}
-              onPress={() => {
-                onSelect(option.id);
-                setOpen(false);
-              }}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  sStyles.dropdownOptionText,
-                  value === option.id && sStyles.dropdownOptionTextSelected,
-                ]}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
 
 // ─── Chapter Card ──────────────────────────────────────────────────────────────
 
@@ -246,6 +198,13 @@ export function LessonPlanScreen() {
   const vm = useLessonPlanVM();
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
 
+  // Refresh lessons when screen comes into focus (e.g., after adding a lesson)
+  useFocusEffect(
+    useCallback(() => {
+      vm.refreshLessons();
+    }, [vm.refreshLessons])
+  );
+
   const handleViewDetails = (chapter: Chapter) => {
     setSelectedChapter(chapter);
   };
@@ -277,14 +236,10 @@ export function LessonPlanScreen() {
           {!isStudent && (
             <>
               <Text style={sStyles.sectionLabel}>Academic Year</Text>
-              <Dropdown
+              <ModalDropdown
                 label="Select Academic Year"
                 value={vm.academicYear}
-                options={[
-                  { id: '2025-26', label: '2025-26' },
-                  { id: '2026-27', label: '2026-27' },
-                  { id: '2027-28', label: '2027-28' },
-                ]}
+                options={vm.academicYearOptions}
                 onSelect={vm.setAcademicYear}
               />
             </>
@@ -295,7 +250,7 @@ export function LessonPlanScreen() {
             <View style={sStyles.rowContainer}>
               <View style={sStyles.halfWidth}>
                 <Text style={sStyles.sectionLabel}>Select Class</Text>
-                <Dropdown
+                <ModalDropdown
                   label="Class"
                   value={vm.selectedClass}
                   options={vm.classes}
@@ -304,7 +259,7 @@ export function LessonPlanScreen() {
               </View>
               <View style={sStyles.halfWidth}>
                 <Text style={sStyles.sectionLabel}>Select Section</Text>
-                <Dropdown
+                <ModalDropdown
                   label="Section"
                   value={vm.selectedSection}
                   options={vm.sections}
@@ -316,7 +271,7 @@ export function LessonPlanScreen() {
 
           {/* Subject */}
           <Text style={sStyles.sectionLabel}>Select Subject</Text>
-          <Dropdown
+          <ModalDropdown
             label="Subject"
             value={vm.selectedSubject}
             options={vm.subjects}
@@ -358,7 +313,7 @@ export function LessonPlanScreen() {
               </View>
 
               {/* Add Lesson Button */}
-              {!isStudent && (
+              {!isStudent && vm.canAddLesson && (
                 <TouchableOpacity
                   style={sStyles.addButton}
                   onPress={handleAddLesson}
@@ -379,7 +334,7 @@ export function LessonPlanScreen() {
               <Text style={sStyles.emptySubtitle}>
                 Start by creating a structured lesson plan for your class to track progress effectively
               </Text>
-              {!isStudent && (
+              {!isStudent && vm.canAddLesson && (
                 <TouchableOpacity
                   style={sStyles.addButton}
                   onPress={handleAddLesson}
@@ -437,6 +392,28 @@ export function LessonPlanScreen() {
               >
                 <Text style={sStyles.modalCloseButtonText}>Close</Text>
               </TouchableOpacity>
+              {vm.canApprove && selectedChapter.status !== 'completed' && (
+                <TouchableOpacity
+                  style={[sStyles.modalCloseButton, { backgroundColor: colors.green[200], marginTop: 10 }]}
+                  onPress={() => {
+                    vm.approveLesson(selectedChapter.id);
+                    setSelectedChapter(null);
+                  }}
+                >
+                  <Text style={sStyles.modalCloseButtonText}>Approve Lesson</Text>
+                </TouchableOpacity>
+              )}
+              {vm.canComplete && selectedChapter.status !== 'completed' && (
+                <TouchableOpacity
+                  style={[sStyles.modalCloseButton, { backgroundColor: colors.green[200], marginTop: 10 }]}
+                  onPress={() => {
+                    vm.completeLesson(selectedChapter.id);
+                    setSelectedChapter(null);
+                  }}
+                >
+                  <Text style={sStyles.modalCloseButtonText}>Complete Lesson</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </Modal>

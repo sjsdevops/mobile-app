@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -41,7 +42,7 @@ function StudentCard({
 }: {
   name: string;
   roll: string;
-  status: 'present' | 'absent';
+  status: 'present' | 'absent' | 'not_marked';
   onPress: () => void;
 }) {
   return (
@@ -54,7 +55,9 @@ function StudentCard({
           <Text style={styles.studentName}>{name}</Text>
           <Text style={styles.studentMeta}>Roll No: {roll}</Text>
         </View>
-        <View style={[styles.statusDot, status === 'present' ? styles.presentDot : styles.absentDot]} />
+        {status !== 'not_marked' && (
+          <View style={[styles.statusDot, status === 'present' ? styles.presentDot : styles.absentDot]} />
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -72,54 +75,74 @@ export function StudentsScreen() {
         <Text style={styles.title}>Students</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
-          {vm.classes.map((className) => (
-            <StudentChip
-              key={className}
-              label={className}
-              active={vm.activeClass === className}
-              onPress={() => vm.setActiveClass(className)}
-            />
-          ))}
-        </ScrollView>
+      {vm.loadingTabs ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary[300]} />
+        </View>
+      ) : vm.classes.length === 0 ? (
+        <View style={styles.center}>
+          <Text style={styles.emptyText}>No assigned sections found</Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
+            {vm.classes.map((className) => (
+              <StudentChip
+                key={className}
+                label={className}
+                active={vm.activeClass === className}
+                onPress={() => vm.setActiveClass(className)}
+              />
+            ))}
+          </ScrollView>
 
-        <View style={styles.summaryRow}>
-          <Text style={styles.sectionTitle}>Student ({vm.totalCount})</Text>
-          <View style={styles.summaryStats}>
-            <View style={styles.summaryBadge}>
-              <View style={[styles.summaryDot, styles.presentDot]} />
-              <Text style={styles.summaryText}>{vm.presentCount} Present</Text>
-            </View>
-            <View style={styles.summaryBadge}>
-              <View style={[styles.summaryDot, styles.absentDot]} />
-              <Text style={styles.summaryText}>{vm.absentCount} Absent</Text>
+          <View style={styles.summaryRow}>
+            <Text style={styles.sectionTitle}>Student ({vm.totalCount})</Text>
+            <View style={styles.summaryStats}>
+              <View style={styles.summaryBadge}>
+                <View style={[styles.summaryDot, styles.presentDot]} />
+                <Text style={styles.summaryText}>{vm.presentCount} Present</Text>
+              </View>
+              <View style={styles.summaryBadge}>
+                <View style={[styles.summaryDot, styles.absentDot]} />
+                <Text style={styles.summaryText}>{vm.absentCount} Absent</Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={styles.searchCard}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search..."
-            placeholderTextColor={colors.neutral[400]}
-            value={vm.searchQuery}
-            onChangeText={vm.setSearchQuery}
-          />
-        </View>
+          <View style={styles.searchCard}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search by name or roll no..."
+              placeholderTextColor={colors.neutral[400]}
+              value={vm.searchQuery}
+              onChangeText={vm.setSearchQuery}
+            />
+          </View>
 
-        {vm.filteredStudents.map((student) => (
-          <StudentCard
-            key={student.id}
-            name={student.name}
-            roll={student.roll}
-            status={student.status}
-            onPress={() => router.push(`/student-info?id=${student.id}`)}
-          />
-        ))}
+          {vm.loadingStudents ? (
+            <View style={styles.loadingRow}>
+              <ActivityIndicator size="small" color={colors.primary[300]} />
+            </View>
+          ) : vm.filteredStudents.length === 0 ? (
+            <View style={styles.loadingRow}>
+              <Text style={styles.emptyText}>No students found</Text>
+            </View>
+          ) : (
+            vm.filteredStudents.map((student) => (
+              <StudentCard
+                key={student.id}
+                name={student.name}
+                roll={student.roll}
+                status={student.status}
+                onPress={() => router.push(`/student-info?id=${student.id}`)}
+              />
+            ))
+          )}
 
-        <View style={{ height: 24 }} />
-      </ScrollView>
+          <View style={{ height: 24 }} />
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
@@ -240,4 +263,7 @@ const styles = StyleSheet.create({
   },
   presentDot: { backgroundColor: colors.green[200] },
   absentDot: { backgroundColor: colors.secondary[300] },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  emptyText: { fontSize: 15, color: colors.neutral[400] },
+  loadingRow: { alignItems: 'center', paddingVertical: 32 },
 });

@@ -211,11 +211,22 @@ export function StudentsExamResultsScreen() {
     city: 'Vellore - 632002',
   };
 
-  const mockStudent: StudentInfo = {
-    name: 'Sneha Gupta',
-    roll: '14',
-    className: 'Class X-A',
+  const studentInfo: StudentInfo = {
+    name: vm.studentName || 'Student',
+    roll: vm.studentRoll || '-',
+    className: vm.studentClass || '-',
   };
+
+  if (vm.loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <ScreenHeader title="Exam Results" onBack={() => router.back()} />
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (vm.examSections.length === 0) {
     return (
@@ -235,7 +246,7 @@ export function StudentsExamResultsScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <SchoolCard school={mockSchool} />
-        <StudentCard student={mockStudent} />
+        <StudentCard student={studentInfo} />
 
         {vm.examSections.map((section) => (
           <View key={section.id} style={styles.sectionBlock}>

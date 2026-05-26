@@ -1,91 +1,145 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as Location from 'expo-location';
+import { api } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { markEmployeeSelfAttendance } from '../../services/attendanceService';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type AttendanceView =
-  | 'home'           // main swipe-to-punch screen
-  | 'confirm'        // map + confirm location
-  | 'late'           // late entry detected
-  | 'outside'        // outside campus
-  | 'success';       // punch-in successful
-
+export type AttendanceView = 'home' | 'confirm' | 'late' | 'outside' | 'success';
 export type PunchStatus = 'on-time' | 'late';
-
-// ─── School Campus Config ─────────────────────────────────────────────────────
+export type PunchMode = 'punch-in' | 'punch-out';
 
 export const SCHOOL = {
-  name:      'Man2 Web Technologies',
-  latitude:  12.9477102,
+  name: 'Sree Jayam School',
+  latitude: 12.9477102,
   longitude: 79.1337949,
-  radiusMeters: 500,   // allowed radius
+  radiusMeters: 500,
 };
 
-export const SHIFT = {
-  start: '09:00AM',
-  end:   '04:00PM',
-  startHour: 9,
-  startMinute: 0,
-};
-
-// ─── Haversine distance (metres) ─────────────────────────────────────────────
-
-function haversine(
-  lat1: number, lon1: number,
-  lat2: number, lon2: number,
-): number {
-  const R  = 6371000;
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-  const a  =
-    Math.sin(Δφ / 2) ** 2 +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const p1 = (lat1 * Math.PI) / 180;
+  const p2 = (lat2 * Math.PI) / 180;
+  const dp = ((lat2 - lat1) * Math.PI) / 180;
+  const dl = ((lon2 - lon1) * Math.PI) / 180;
+  const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// ─── ViewModel ────────────────────────────────────────────────────────────────
+function getTodayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function toLocalISO(d: Date): string {
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  const s = String(d.getSeconds()).padStart(2, '0');
+  return `${y}-${mo}-${day}T${h}:${mi}:${s}`;
+}
 
 export function useMyAttendanceVM() {
-  const [view,       setView]       = useState<AttendanceView>('home');
-  const [locLoading, setLocLoading] = useState(false);
-  const [coords,     setCoords]     = useState<{ lat: number; lng: number } | null>(null);
-  const [distance,   setDistance]   = useState<number>(0);
-  const [withinCampus, setWithinCampus] = useState(false);
-  const [punchTime,  setPunchTime]  = useState<Date | null>(null);
-  const [lateMinutes,setLateMinutes] = useState(0);
-  const [punchStatus,setPunchStatus] = useState<PunchStatus>('on-time');
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
 
-  const now = new Date();
+  const [view, setView] = useState<AttendanceView>('home');
+  const [locLoading, setLocLoading] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [distance, setDistance] = useState(0);
+  const [punchTime, setPunchTime] = useState<Date | null>(null);
+  const [lateMinutes, setLateMinutes] = useState(0);
+  const [punchStatus, setPunchStatus] = useState<PunchStatus>('on-time');
+  const [submitting, setSubmitting] = useState(false);
+
+  // Data from API
+  const [employeeName, setEmployeeName] = useState('');
+  const [shiftDisplay, setShiftDisplay] = useState('');
+  const [shiftStartHour, setShiftStartHour] = useState(9);
+  const [shiftStartMinute, setShiftStartMinute] = useState(0);
+
+  // Today's attendance state
+  const [punchMode, setPunchMode] = useState<PunchMode>('punch-in');
+  const [todayCheckIn, setTodayCheckIn] = useState<string | null>(null);
+  const [todayCheckOut, setTodayCheckOut] = useState<string | null>(null);
+  const [alreadyPunchedIn, setAlreadyPunchedIn] = useState(false);
+
+  // Fetch employee profile
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const response = await api.get(`/mobile/employee/${userId}/profile`);
+        const p = response.data?.data ?? response.data;
+        setEmployeeName(`${p.first_name || ''} ${p.last_name || ''}`.trim());
+        if (p.work_details?.shift_time) {
+          setShiftDisplay(p.work_details.shift_time);
+          const match = p.work_details.shift_time.match(/(\d{1,2}):(\d{2})/);
+          if (match) {
+            setShiftStartHour(parseInt(match[1]));
+            setShiftStartMinute(parseInt(match[2]));
+          }
+        }
+      } catch (err) {
+        console.error('[MyAttendance] Profile API error:', err);
+      }
+    })();
+  }, [userId]);
+
+  // Fetch today's attendance to check if already punched in
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      try {
+        const response = await api.get(`/mobile/attendance/employees/${userId}`);
+        const data = response.data?.data ?? response.data;
+        const records = data?.records ?? [];
+
+        // Find today's record
+        const today = getTodayISO();
+        const todayRecord = records.find((r: any) => r.date === today);
+
+        if (todayRecord && todayRecord.is_present) {
+          setAlreadyPunchedIn(true);
+          setTodayCheckIn(todayRecord.check_in);
+          setTodayCheckOut(todayRecord.check_out);
+          if (todayRecord.check_out) {
+            // Already punched out — show success
+            setPunchMode('punch-out');
+          } else {
+            // Punched in but not out — show punch out button
+            setPunchMode('punch-out');
+          }
+        } else {
+          setPunchMode('punch-in');
+          setAlreadyPunchedIn(false);
+        }
+      } catch (err) {
+        console.error('[MyAttendance] History API error:', err);
+      }
+    })();
+  }, [userId]);
 
   // Live clock
-  const [clock, setClock] = useState(now);
+  const [clock, setClock] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const clockStr = clock.toLocaleTimeString('en-US', {
-    hour:   '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  });
+  const clockStr = clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
 
-  const dateStr = now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    day:     'numeric',
-    month:   'short',
-    year:    'numeric',
-  });
-
-  // Format a Date to "09:20 AM"
   function fmtTime(d: Date) {
-    return d.toLocaleTimeString('en-US', {
-      hour:   '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+
+  function fmtTimeStr(isoStr: string | null): string {
+    if (!isoStr) return '--:--';
+    try {
+      return new Date(isoStr).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch { return '--:--'; }
   }
 
   async function requestLocation() {
@@ -93,30 +147,18 @@ export function useMyAttendanceVM() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        // Permission denied — treat as outside
-        setDistance(450);
-        setWithinCampus(false);
-        setCoords({ lat: SCHOOL.latitude + 0.004, lng: SCHOOL.longitude + 0.003 });
-        return { within: false, dist: 450 };
+        setDistance(999);
+        setCoords(null);
+        return { within: false, dist: 999 };
       }
-
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-
-      const { latitude, longitude } = pos.coords;
-      const dist = Math.round(haversine(latitude, longitude, SCHOOL.latitude, SCHOOL.longitude));
-      const within = dist <= SCHOOL.radiusMeters;
-
-      setCoords({ lat: latitude, lng: longitude });
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const dist = Math.round(haversine(pos.coords.latitude, pos.coords.longitude, SCHOOL.latitude, SCHOOL.longitude));
+      setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       setDistance(dist);
-      setWithinCampus(within);
-      return { within, dist };
+      return { within: dist <= SCHOOL.radiusMeters, dist };
     } catch {
-      // Fallback: simulate within campus for demo
       setCoords({ lat: SCHOOL.latitude, lng: SCHOOL.longitude });
       setDistance(30);
-      setWithinCampus(true);
       return { within: true, dist: 30 };
     } finally {
       setLocLoading(false);
@@ -124,53 +166,96 @@ export function useMyAttendanceVM() {
   }
 
   async function onSwipePunchIn() {
-    const result = await requestLocation();
-    if (result.within) {
-      setView('confirm');
-    } else {
-      setView('outside');
-    }
+    const r = await requestLocation();
+    setView(r.within ? 'confirm' : 'outside');
   }
 
-  function onConfirmPunchIn() {
+  async function onConfirmPunchIn() {
+    if (!userId) return;
     const t = new Date();
     setPunchTime(t);
 
-    const lateBy =
-      (t.getHours() - SHIFT.startHour) * 60 +
-      (t.getMinutes() - SHIFT.startMinute);
+    setSubmitting(true);
+    try {
+      if (punchMode === 'punch-in') {
+        // Punch IN
+        const lateBy = (t.getHours() - shiftStartHour) * 60 + (t.getMinutes() - shiftStartMinute);
+        await markEmployeeSelfAttendance({
+          date: getTodayISO(),
+          is_present: true,
+          is_absent: false,
+          check_in: toLocalISO(t),
+          location: coords ? `${coords.lat},${coords.lng}` : undefined,
+          created_by: userId,
+          modified_by: userId,
+        });
 
-    if (lateBy > 0) {
-      setLateMinutes(lateBy);
-      setPunchStatus('late');
-      setView('late');
-    } else {
-      setPunchStatus('on-time');
-      setView('success');
+        setAlreadyPunchedIn(true);
+        setTodayCheckIn(toLocalISO(t));
+        setPunchMode('punch-out');
+
+        if (lateBy > 0) {
+          setLateMinutes(lateBy);
+          setPunchStatus('late');
+          setView('late');
+        } else {
+          setPunchStatus('on-time');
+          setView('success');
+        }
+      } else {
+        // Punch OUT
+        await markEmployeeSelfAttendance({
+          date: getTodayISO(),
+          is_present: true,
+          is_absent: false,
+          check_in: todayCheckIn || toLocalISO(t),
+          check_out: toLocalISO(t),
+          location: coords ? `${coords.lat},${coords.lng}` : undefined,
+          created_by: userId,
+          modified_by: userId,
+        });
+
+        setTodayCheckOut(toLocalISO(t));
+        setPunchStatus('on-time');
+        setView('success');
+      }
+    } catch (e) {
+      console.error('[Attendance] API error:', e);
+    } finally {
+      setSubmitting(false);
     }
   }
 
-  function onAcknowledgeLate() {
-    setView('success');
-  }
+  function onAcknowledgeLate() { setView('success'); }
+  async function onRetryLocation() { const r = await requestLocation(); if (r.within) setView('confirm'); }
+  function goHome() { setView('home'); }
 
-  async function onRetryLocation() {
-    const result = await requestLocation();
-    if (result.within) {
-      setView('confirm');
-    }
-  }
+  const SHIFT = {
+    display: shiftDisplay || 'Not set',
+    startHour: shiftStartHour,
+    startMinute: shiftStartMinute,
+  };
 
-  function goHome() {
-    setView('home');
-  }
+  // Status text for home screen
+  const statusTitle = alreadyPunchedIn
+    ? (todayCheckOut ? 'Attendance Complete' : 'You have punched in')
+    : "You haven't punched in yet";
+
+  const statusSubtitle = alreadyPunchedIn
+    ? (todayCheckOut
+      ? `Punch In: ${fmtTimeStr(todayCheckIn)} | Punch Out: ${fmtTimeStr(todayCheckOut)}`
+      : `Punched in at ${fmtTimeStr(todayCheckIn)}`)
+    : 'Please mark your attendance to\nstart the day';
+
+  const swipeLabel = punchMode === 'punch-in' ? 'Swipe to Punch In' : 'Swipe to Punch Out';
+  const confirmLabel = punchMode === 'punch-in' ? 'Confirm Punch In' : 'Confirm Punch Out';
 
   return {
     view,
     locLoading,
     coords,
     distance,
-    withinCampus,
+    withinCampus: distance <= SCHOOL.radiusMeters,
     punchTime,
     lateMinutes,
     punchStatus,
@@ -182,5 +267,17 @@ export function useMyAttendanceVM() {
     onAcknowledgeLate,
     onRetryLocation,
     goHome,
+    submitting,
+    employeeName,
+    SHIFT,
+    punchMode,
+    alreadyPunchedIn,
+    todayCheckIn,
+    todayCheckOut,
+    statusTitle,
+    statusSubtitle,
+    swipeLabel,
+    confirmLabel,
+    fmtTimeStr,
   };
 }

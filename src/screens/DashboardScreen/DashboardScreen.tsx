@@ -1,4 +1,6 @@
 import {
+  Dimensions,
+  FlatList,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -10,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import {
-  HamburgerMenu,
   Notification1,
   Calendar1,
   Book1,
@@ -26,7 +27,8 @@ import {
 import type { FC } from 'react';
 import type { IconProps } from 'iconsax-react-nativejs';
 import { colors } from '../../theme/colors';
-import { useDashboardVM } from './DashboardScreen.vm';
+import { useThemeColors } from '../../theme/ThemeContext';
+import { useDashboardVM, type AssignedClassCard } from './DashboardScreen.vm';
 
 type IconComponent = FC<IconProps>;
 
@@ -183,7 +185,8 @@ function GridItem({
 
 export function DashboardScreen() {
   const router = useRouter();
-  const { user, visibleClassManagementIds, visibleWorkspaceIds } = useDashboardVM();
+  const { user, visibleClassManagementIds, visibleWorkspaceIds, assignedClasses, attendancePercentage } = useDashboardVM();
+  const themeColors = useThemeColors();
 
   const filteredClassItems = CLASS_MANAGEMENT_ITEMS.filter((item) =>
     visibleClassManagementIds.includes(item.id)
@@ -193,6 +196,7 @@ export function DashboardScreen() {
   );
 
   const displayName = user?.firstName || 'User';
+  const screenWidth = Dimensions.get('window').width - 40; // 20px padding each side
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -200,12 +204,9 @@ export function DashboardScreen() {
 
       {/* ── Top header ── */}
       <View style={styles.header}>
-        <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <HamburgerMenu color={colors.neutral[900]} size={22} variant="Linear" />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Dashboard</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIconBtn}>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={() => router.push('/notifications')}>
             <Notification1 color={colors.neutral[700]} size={22} variant="Bold" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/profile')}>
@@ -224,25 +225,48 @@ export function DashboardScreen() {
         <Text style={styles.greeting}>Hey {displayName}! {getGreeting()}</Text>
         <Text style={styles.quote}>"Great dreams of great dreamers are always transcended."</Text>
 
-        {/* ── Assigned class card ── */}
-        <View style={styles.classCard}>
-          <View style={styles.classCardDecorCircle} />
-          <View style={styles.classCardDecorCircle2} />
-          <Text style={styles.classCardTag}>ASSIGNED CLASS TEACHER</Text>
-          <Text style={styles.classCardName}>CLASS 8-B</Text>
-          <Text style={styles.classCardSubject}>Physics</Text>
-          <View style={styles.classCardStats}>
-            <View>
-              <Text style={styles.classCardStatValue}>34</Text>
-              <Text style={styles.classCardStatLabel}>Students</Text>
-            </View>
-            <View style={styles.classCardStatDivider} />
-            <View>
-              <Text style={styles.classCardStatValue}>92%</Text>
-              <Text style={styles.classCardStatLabel}>Avg. Attendance</Text>
-            </View>
+        {/* ── Assigned class cards (carousel) ── */}
+        {assignedClasses.length > 0 && (
+          <FlatList
+            data={assignedClasses}
+            keyExtractor={(item, idx) => `${item.classId}-${item.sectionName}-${idx}`}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={screenWidth + 12}
+            decelerationRate="fast"
+            contentContainerStyle={{ gap: 12 }}
+            renderItem={({ item }) => (
+              <View style={[styles.classCard, { width: screenWidth, backgroundColor: themeColors.primary[300] }]}>
+                <View style={styles.classCardDecorCircle} />
+                <View style={styles.classCardDecorCircle2} />
+                <Text style={styles.classCardTag}>ASSIGNED CLASS TEACHER</Text>
+                <Text style={styles.classCardName}>{item.className} - {item.sectionName}</Text>
+                <Text style={styles.classCardSubject}>{item.classType}</Text>
+                <View style={styles.classCardStats}>
+                  <View>
+                    <Text style={styles.classCardStatValue}>{item.totalStudents}</Text>
+                    <Text style={styles.classCardStatLabel}>Students</Text>
+                  </View>
+                  <View style={styles.classCardStatDivider} />
+                  <View>
+                    <Text style={styles.classCardStatValue}>{item.todayAttendancePercentage}%</Text>
+                    <Text style={styles.classCardStatLabel}>Avg. Attendance</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+          />
+        )}
+        {assignedClasses.length === 0 && (
+          <View style={styles.classCard}>
+            <View style={styles.classCardDecorCircle} />
+            <View style={styles.classCardDecorCircle2} />
+            <Text style={styles.classCardTag}>WELCOME</Text>
+            <Text style={styles.classCardName}>{displayName}</Text>
+            <Text style={styles.classCardSubject}>{user?.role ?? ''}</Text>
           </View>
-        </View>
+        )}
 
         {/* ── Today's Overview ── */}
         <SectionTitle title="Today's Overview" />
@@ -271,9 +295,10 @@ export function DashboardScreen() {
                   onPress={
                     item.id === 'timetable' ? () => router.push('/timetable') :
                       item.id === 'lesson' ? () => router.push('/lesson-plan') :
-                        item.id === 'attendance' ? () => router.push('/attendance') :
-                          item.id === 'exams' ? () => router.push('/(tabs)/exams') :
-                            undefined
+                        item.id === 'attendance' ? () => router.push('/select-section') :
+                          item.id === 'homework' ? () => router.push('/homework') :
+                            item.id === 'exams' ? () => router.push('/(tabs)/exams') :
+                              undefined
                   }
                 />
               ))}
@@ -318,12 +343,9 @@ export function StudentDashboardScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface.light} />
 
       <View style={styles.header}>
-        <TouchableOpacity hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <HamburgerMenu color={colors.neutral[900]} size={22} variant="Linear" />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>Dashboard</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIconBtn}>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={() => router.push('/notifications')}>
             <Notification1 color={colors.neutral[700]} size={22} variant="Bold" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/profile')}>

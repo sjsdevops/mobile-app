@@ -1,5 +1,7 @@
 import {
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -9,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
   ClipboardText,
   Clock,
@@ -17,20 +20,20 @@ import {
 } from 'iconsax-react-nativejs';
 import { colors } from '../../theme/colors';
 import { ScreenHeader, CircleIconBtn } from '../../components/ui/ScreenHeader';
-import { Badge }       from '../../components/ui/Badge';
-import { StatCard }    from '../../components/ui/StatCard';
+import { Badge } from '../../components/ui/Badge';
+import { StatCard } from '../../components/ui/StatCard';
 import { SearchInput } from '../../components/ui/SearchInput';
-import { useExamVM }   from './Exam.vm';
-import { useAuth }     from '../../contexts/AuthContext';
+import { useExamVM } from './Exam.vm';
+import { useAuth } from '../../contexts/AuthContext';
 import type { ExamFilter, ExamItem, ExamStudent } from './Exam.vm';
 
 // ─── Filter Chips ─────────────────────────────────────────────────────────────
 
 const FILTERS: { key: ExamFilter; label: string }[] = [
-  { key: 'all',       label: 'All Exams'  },
-  { key: 'pending',   label: 'Pending'    },
-  { key: 'submitted', label: 'Submitted'  },
-  { key: 'verified',  label: 'Verified'   },
+  { key: 'all', label: 'All Exams' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'submitted', label: 'Submitted' },
+  { key: 'verified', label: 'Verified' },
 ];
 
 function FilterChips({
@@ -78,21 +81,21 @@ function ExamCard({
   exam: ExamItem;
   onAction: () => void;
 }) {
-  const isPending    = exam.status === 'in-progress' || exam.status === 'not-started';
-  const isSubmitted  = exam.status === 'submitted';
-  const isVerified   = exam.status === 'verified';
+  const isPending = exam.status === 'in-progress' || exam.status === 'not-started';
+  const isSubmitted = exam.status === 'submitted';
+  const isVerified = exam.status === 'verified';
 
   const progressText =
-    exam.status === 'in-progress'  ? `${exam.gradedCount}/${exam.studentCount} Graded` :
-    exam.status === 'not-started'  ? 'Not Started' :
-    exam.status === 'submitted'    ? 'Wait for Coordinator Approval' :
-                                     'Published to Students';
+    exam.status === 'in-progress' ? `${exam.gradedCount}/${exam.studentCount} Graded` :
+      exam.status === 'not-started' ? 'Not Started' :
+        exam.status === 'submitted' ? 'Wait for Coordinator Approval' :
+          'Published to Students';
 
   const actionLabel =
     exam.status === 'in-progress' ? 'Continue Entry Marks' :
-    exam.status === 'not-started' ? 'Enter Marks' :
-    exam.status === 'submitted'   ? 'View Details' :
-                                    'View Report';
+      exam.status === 'not-started' ? 'Enter Marks' :
+        exam.status === 'submitted' ? 'View Details' :
+          'View Report';
 
   return (
     <View style={listStyles.card}>
@@ -142,6 +145,7 @@ function ExamCard({
 // ─── View 1: Student Exam List ────────────────────────────────────────────────
 
 function StudentExamList({ vm }: { vm: ReturnType<typeof useExamVM> }) {
+  const router = useRouter();
   const upcomingExams = vm.filteredExams.filter((e) => e.status === 'not-started');
 
   function Section({
@@ -181,12 +185,7 @@ function StudentExamList({ vm }: { vm: ReturnType<typeof useExamVM> }) {
 
       <ScreenHeader
         title="Exams"
-        onBack={undefined}
-        rightElement={
-          <CircleIconBtn>
-            <MoreCircle color={colors.neutral[800]} size={20} variant="Linear" />
-          </CircleIconBtn>
-        }
+        onBack={() => router.navigate('/(tabs)')}
       />
 
       <ScrollView
@@ -208,11 +207,12 @@ function StudentExamList({ vm }: { vm: ReturnType<typeof useExamVM> }) {
 // ─── View 1: Exam List ────────────────────────────────────────────────────────
 
 function ExamList({ vm }: { vm: ReturnType<typeof useExamVM> }) {
-  const pending  = vm.filteredExams.filter(
+  const router = useRouter();
+  const pending = vm.filteredExams.filter(
     (e) => e.status === 'in-progress' || e.status === 'not-started',
   );
   const submitted = vm.filteredExams.filter((e) => e.status === 'submitted');
-  const verified  = vm.filteredExams.filter((e) => e.status === 'verified');
+  const verified = vm.filteredExams.filter((e) => e.status === 'verified');
 
   function Section({
     title,
@@ -242,12 +242,7 @@ function ExamList({ vm }: { vm: ReturnType<typeof useExamVM> }) {
 
       <ScreenHeader
         title="Exams"
-        onBack={undefined}
-        rightElement={
-          <CircleIconBtn>
-            <MoreCircle color={colors.neutral[800]} size={20} variant="Linear" />
-          </CircleIconBtn>
-        }
+        onBack={() => router.navigate('/(tabs)')}
       />
 
       <FilterChips active={vm.activeFilter} onChange={vm.setActiveFilter} />
@@ -257,8 +252,8 @@ function ExamList({ vm }: { vm: ReturnType<typeof useExamVM> }) {
         contentContainerStyle={listStyles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Section title="Pending Entry" data={pending}   />
-        <Section title="Submitted"     data={submitted} />
+        <Section title="Pending Entry" data={pending} />
+        <Section title="Submitted" data={submitted} />
         <Section title="Verified Exams" data={verified} />
         {vm.filteredExams.length === 0 && (
           <View style={styles.empty}>
@@ -289,9 +284,9 @@ function StudentMarkRow({
   onChangeMark?: (v: string) => void;
   onChangeComment?: (v: string) => void;
 }) {
-  const hasmark  = mark.trim() !== '';
-  const markNum  = hasmark ? Number(mark) : null;
-  const isFail   = markNum !== null && markNum < 35;
+  const hasmark = mark.trim() !== '';
+  const markNum = hasmark ? Number(mark) : null;
+  const isFail = markNum !== null && markNum < 35;
 
   return (
     <>
@@ -314,9 +309,9 @@ function StudentMarkRow({
           /* Preview/readonly view */
           hasmark ? (
             <View style={enterStyles.marksBox}>
-            <View style={[enterStyles.markInput, isFail && enterStyles.markInputFail]}>
-              <Text style={[enterStyles.markValue, isFail && enterStyles.markValueFail]}>{mark}</Text>
-            </View>
+              <View style={[enterStyles.markInput, isFail && enterStyles.markInputFail]}>
+                <Text style={[enterStyles.markValue, isFail && enterStyles.markValueFail]}>{mark}</Text>
+              </View>
               <View style={[enterStyles.markInput, enterStyles.markMax]}>
                 <Text style={enterStyles.markMaxText}>{maxMarks}</Text>
               </View>
@@ -386,60 +381,66 @@ function EnterMarks({ vm }: { vm: ReturnType<typeof useExamVM> }) {
         }
       />
 
-      {/* Blue banner */}
-      <View style={enterStyles.banner}>
-        <View style={enterStyles.bannerLeft}>
-          <Text style={enterStyles.bannerExamName}>{exam.name}</Text>
-          <Text style={enterStyles.bannerClass}>
-            Class {exam.className} Section
-          </Text>
-        </View>
-        <View style={enterStyles.bannerRight}>
-          <Text style={enterStyles.bannerMax}>{exam.maxMarks}</Text>
-          <Text style={enterStyles.bannerMaxLabel}>Max Marks</Text>
-        </View>
-      </View>
-
-      {/* Student count + search */}
-      <View style={enterStyles.searchRow}>
-        <Text style={enterStyles.studentCount}>
-          Student ({vm.students.length})
-        </Text>
-        <SearchInput
-          value={vm.searchQuery}
-          onChangeText={vm.setSearchQuery}
-        />
-      </View>
-
-      {/* Student list */}
-      <FlatList
-        data={vm.filteredStudents}
-        keyExtractor={(s) => s.id}
-        style={enterStyles.list}
-        contentContainerStyle={enterStyles.listContent}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <StudentMarkRow
-            student={item}
-            mark={vm.marks[item.id] ?? ''}
-            comment={vm.comments[item.id] ?? ''}
-            maxMarks={exam.maxMarks}
-            onChangeMark={(v) => vm.setMark(item.id, v)}
-            onChangeComment={(v) => vm.setComment(item.id, v)}
-          />
-        )}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No students found</Text>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
+        {/* Blue banner */}
+        <View style={enterStyles.banner}>
+          <View style={enterStyles.bannerLeft}>
+            <Text style={enterStyles.bannerExamName}>{exam.name}</Text>
+            <Text style={enterStyles.bannerClass}>
+              Class {exam.className} Section
+            </Text>
           </View>
-        }
-      />
+          <View style={enterStyles.bannerRight}>
+            <Text style={enterStyles.bannerMax}>{exam.maxMarks}</Text>
+            <Text style={enterStyles.bannerMaxLabel}>Max Marks</Text>
+          </View>
+        </View>
+
+        {/* Student count + search */}
+        <View style={enterStyles.searchRow}>
+          <Text style={enterStyles.studentCount}>
+            Student ({vm.students.length})
+          </Text>
+          <SearchInput
+            value={vm.searchQuery}
+            onChangeText={vm.setSearchQuery}
+          />
+        </View>
+
+        {/* Student list */}
+        <FlatList
+          data={vm.filteredStudents}
+          keyExtractor={(s) => s.id}
+          style={enterStyles.list}
+          contentContainerStyle={[enterStyles.listContent, { paddingBottom: 120 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
+          renderItem={({ item }) => (
+            <StudentMarkRow
+              student={item}
+              mark={vm.marks[item.id] ?? ''}
+              comment={vm.comments[item.id] ?? ''}
+              maxMarks={exam.maxMarks}
+              onChangeMark={(v) => vm.setMark(item.id, v)}
+              onChangeComment={(v) => vm.setComment(item.id, v)}
+            />
+          )}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No students found</Text>
+            </View>
+          }
+        />
+      </KeyboardAvoidingView>
 
       {/* Bottom buttons */}
       <View style={styles.bottomRow}>
-        <TouchableOpacity style={styles.outlineBtn} activeOpacity={0.8}>
-          <Text style={styles.outlineBtnText}>Save Draft</Text>
-        </TouchableOpacity>
         <TouchableOpacity
           style={styles.primaryBtn}
           onPress={vm.goToPreview}
@@ -542,6 +543,17 @@ function PreviewSubmission({ vm }: { vm: ReturnType<typeof useExamVM> }) {
           <Text style={styles.primaryBtnText}>Confirm & Submit</Text>
         </TouchableOpacity>
       </View>
+      {vm.canApproveMarks && (
+        <View style={[styles.bottomRow, { borderTopWidth: 0, paddingTop: 0 }]}>
+          <TouchableOpacity
+            style={[styles.primaryBtn, { backgroundColor: '#1fc16b' }]}
+            onPress={vm.approveMarks}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryBtnText}>Approve Marks</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -635,10 +647,10 @@ export function ExamScreen() {
     return <StudentExamList vm={vm} />;
   }
 
-  if (vm.view === 'enter')   return <EnterMarks        vm={vm} />;
-  if (vm.view === 'preview') return <PreviewSubmission  vm={vm} />;
-  if (vm.view === 'done')    return <SubmittedView      vm={vm} />;
-  return                            <ExamList           vm={vm} />;
+  if (vm.view === 'enter') return <EnterMarks vm={vm} />;
+  if (vm.view === 'preview') return <PreviewSubmission vm={vm} />;
+  if (vm.view === 'done') return <SubmittedView vm={vm} />;
+  return <ExamList vm={vm} />;
 }
 
 // ─── Shared Styles ────────────────────────────────────────────────────────────

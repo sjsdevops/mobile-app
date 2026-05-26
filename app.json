@@ -3,6 +3,7 @@
     "name": "school-erp-mobile-app",
     "slug": "school-erp-mobile-app",
     "version": "1.0.0",
+    "scheme": "schoolerp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,8 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sreejayam.schoolerp",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "bundleIdentifier": "com.sreejayam.schoolerp"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,8 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.sreejayam.schoolerp",
-      "googleServicesFile": "./google-services.json"
+      "package": "com.sreejayam.schoolerp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,17 +34,16 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
-          "color": "#144FCC",
-          "sounds": []
+          "color": "#144FCC"
         }
       ]
     ],
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "a733098f-e283-49df-a229-e221796eb336"
+        "projectId": "52f101db-59c6-47d6-89c3-567f54a48cf5"
       }
-    }
+    },
+    "owner": "jayam-school"
   }
 }

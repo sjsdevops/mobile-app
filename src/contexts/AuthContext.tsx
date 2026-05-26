@@ -62,6 +62,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(savedUser);
         setPermissions(savedPermissions);
         setIsReady(true);
+
+        // Re-fetch fresh permissions from API in background
+        if (savedUser.roleId) {
+          try {
+            const { getRolePermissions } = await import('../services/authService');
+            const freshPermissions = await getRolePermissions(savedUser.roleId);
+            setPermissions(freshPermissions);
+          } catch {
+            // Keep cached permissions if fetch fails
+          }
+        }
+
         return true;
       }
 

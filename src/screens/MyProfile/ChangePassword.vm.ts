@@ -1,33 +1,37 @@
 import { useMemo, useState } from 'react';
 import { Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import { api } from '../../services/api';
 
 export function useChangePasswordVM() {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const hasMinLength = newPassword.length >= 8;
+  const hasMinLength = newPassword.length >= 6;
   const hasNumberOrSymbol = /[0-9!@#$%^&*()_+\-=\[\]{};':"\|,.<>\/?]/.test(newPassword);
   const hasUpperCase = /[A-Z]/.test(newPassword);
   const matchesConfirm = newPassword === confirmPassword && newPassword.length > 0;
 
   const passwordRules = useMemo(
     () => [
-      { label: 'Minimum 8 characters', valid: hasMinLength },
+      { label: 'Minimum 6 characters', valid: hasMinLength },
       { label: 'At least one number or symbol', valid: hasNumberOrSymbol },
       { label: 'At least one uppercase', valid: hasUpperCase },
     ],
     [hasMinLength, hasNumberOrSymbol, hasUpperCase],
   );
 
-  function onUpdatePassword() {
+  async function onUpdatePassword() {
     if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert('Incomplete', 'Please fill out all password fields.');
       return;
     }
 
-    if (!hasMinLength || !hasNumberOrSymbol || !hasUpperCase) {
-      Alert.alert('Invalid password', 'Your new password does not meet the requirements.');
+    if (!hasMinLength) {
+      Alert.alert('Invalid password', 'New password must be at least 6 characters.');
       return;
     }
 
@@ -36,10 +40,28 @@ export function useChangePasswordVM() {
       return;
     }
 
-    Alert.alert('Success', 'Your password has been updated.');
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    setSaving(true);
+    try {
+      await api.post('/users/change-password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+
+      Alert.alert('Success', 'Your password has been updated.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        'Failed to change password';
+      Alert.alert('Error', msg);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return {
@@ -51,5 +73,6 @@ export function useChangePasswordVM() {
     setConfirmPassword,
     passwordRules,
     onUpdatePassword,
+    saving,
   };
 }

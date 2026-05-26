@@ -43,6 +43,10 @@ export async function registerForPushNotifications(): Promise<string | null> {
     // Get the Expo push token (works with FCM under the hood)
     try {
         const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+        if (!projectId) {
+            console.log('[Push] No EAS projectId found — skipping token registration (Expo Go?)');
+            return null;
+        }
         const tokenData = await Notifications.getExpoPushTokenAsync({
             projectId,
         });
@@ -61,7 +65,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
         return token;
     } catch (error) {
-        console.error('[Push] Error getting push token:', error);
+        console.warn('[Push] Error getting push token (expected in Expo Go):', error);
         return null;
     }
 }

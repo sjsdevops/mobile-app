@@ -6,451 +6,180 @@ import {
   TouchableOpacity,
   View,
   TextInput,
-  Pressable,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowDown2, DocumentUpload } from 'iconsax-react-nativejs';
-import { useEffect, useState } from 'react';
+import { DocumentUpload } from 'iconsax-react-nativejs';
+import { useEffect, useMemo, useState } from 'react';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { Screen } from '../../components/ui/Screen';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { Card } from '../../components/ui/Card';
+import { ModalDropdown } from '../../components/ui/ModalDropdown';
+import { DatePickerField } from '../../components/ui/DatePickerField';
+import {
+  getAssignedSubjects,
+  createLesson,
+  type AssignedClass,
+} from '../../services/lessonPlanService';
 
-type DropdownOption = {
-  id: string;
-  label: string;
-};
-
-function Dropdown({
-  label,
-  value,
-  options,
-  onSelect,
-}: {
-  label: string;
-  value: string;
-  options: DropdownOption[];
-  onSelect: (id: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selectedLabel = options.find(opt => opt.id === value)?.label || label;
-
-  return (
-    <View style={styles.dropdownContainer}>
-      <Pressable
-        style={styles.dropdownButton}
-        onPress={() => setOpen(!open)}
-      >
-        <Text style={styles.dropdownButtonText}>{selectedLabel}</Text>
-        <ArrowDown2 size={16} color={colors.neutral[500]} />
-      </Pressable>
-
-      {open && (
-        <View style={styles.dropdownMenu}>
-          {options.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={styles.dropdownOption}
-              onPress={() => {
-                onSelect(option.id);
-                setOpen(false);
-              }}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.dropdownOptionText,
-                  value === option.id && styles.dropdownOptionTextSelected,
-                ]}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
+type DropdownOption = { id: string; label: string };
 
 export function AddLessonPlanScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user?.role === 'student') {
-      router.replace('/lesson-plan');
-    }
-  }, [user, router]);
-
-  // Form state
-  const [selectedClass, setSelectedClass] = useState('class5');
-  const [selectedSection, setSelectedSection] = useState('sectiona');
-  const [selectedSubject, setSelectedSubject] = useState('mathematics');
+  const [assignedClasses, setAssignedClasses] = useState<AssignedClass[]>([]);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSection, setSelectedSection] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [chapterName, setChapterName] = useState('');
   const [topicName, setTopicName] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [learningObjectives, setLearningObjectives] = useState('');
   const [selectedAssessment, setSelectedAssessment] = useState('');
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
 
-  // Dropdown options
-  const classes: DropdownOption[] = [
-    { id: 'class5', label: 'Class 5' },
-    { id: 'class6', label: 'Class 6' },
-    { id: 'class7', label: 'Class 7' },
-  ];
+  useEffect(() => {
+    if (!user) return;
+    const fetch = async () => {
+      setLoadingData(true);
+      try {
+        const data = await getAssignedSubjects(user.id, user.id);
+        setAssignedClasses(data.classes ?? []);
+        if (data.classes?.length > 0) setSelectedClass(data.classes[0].class_id);
+      } catch (err) {
+        console.error('[AddLesson] Failed to fetch subjects:', err);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    fetch();
+  }, [user]);
 
-  const sections: DropdownOption[] = [
-    { id: 'sectiona', label: 'Section A' },
-    { id: 'sectionb', label: 'Section B' },
-  ];
+  const classes: DropdownOption[] = useMemo(() => assignedClasses.map((c) => ({ id: c.class_id, label: c.class_name })), [assignedClasses]);
+  const sections: DropdownOption[] = useMemo(() => {
+    const cls = assignedClasses.find((c) => c.class_id === selectedClass);
+    return (cls?.sections ?? []).map((s) => ({ id: s.section_id, label: s.section_name }));
+  }, [assignedClasses, selectedClass]);
+  const subjects: DropdownOption[] = useMemo(() => {
+    const cls = assignedClasses.find((c) => c.class_id === selectedClass);
+    const sec = cls?.sections.find((s) => s.section_id === selectedSection);
+    return (sec?.subjects ?? []).map((s) => ({ id: s.subject_id, label: s.subject_name }));
+  }, [assignedClasses, selectedClass, selectedSection]);
 
-  const subjects: DropdownOption[] = [
-    { id: 'mathematics', label: 'Mathematics' },
-    { id: 'english', label: 'English' },
-    { id: 'science', label: 'Science' },
-  ];
+  useEffect(() => { if (sections.length > 0 && !sections.find((s) => s.id === selectedSection)) setSelectedSection(sections[0].id); }, [sections]);
+  useEffect(() => { if (subjects.length > 0 && !subjects.find((s) => s.id === selectedSubject)) setSelectedSubject(subjects[0].id); }, [subjects]);
 
   const assessmentTypes: DropdownOption[] = [
-    { id: 'quiz', label: 'Quiz' },
-    { id: 'assignment', label: 'Assignment' },
-    { id: 'test', label: 'Test' },
-    { id: 'project', label: 'Project' },
+    { id: 'Quiz', label: 'Quiz' },
+    { id: 'Assignment', label: 'Assignment' },
+    { id: 'Written Test', label: 'Written Test' },
+    { id: 'Project', label: 'Project' },
+    { id: 'Oral', label: 'Oral' },
   ];
 
-  const handleSaveLesson = () => {
-    // TODO: Implement save logic
-    router.back();
+  const handleSaveLesson = async () => {
+    if (!selectedClass || !selectedSection || !selectedSubject) { Alert.alert('Error', 'Please select class, section, and subject'); return; }
+    setSaving(true);
+    try {
+      await createLesson({
+        classId: selectedClass,
+        sectionId: selectedSection,
+        subjectId: selectedSubject,
+        chapterName: chapterName || undefined,
+        topicName: topicName || undefined,
+        startDate: startDate ? `${startDate}T00:00:00` : undefined,
+        endDate: endDate ? `${endDate}T00:00:00` : undefined,
+        learningObjectives: learningObjectives || undefined,
+        status: 'not_started',
+        assessmentType: selectedAssessment || undefined,
+      });
+      Alert.alert('Success', 'Lesson plan created successfully', [{ text: 'OK', onPress: () => router.back() }]);
+    } catch (error: any) {
+      Alert.alert('Error', error?.response?.data?.detail || 'Failed to create lesson plan');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleBack = () => {
-    router.back();
-  };
-
-  const handleUploadFile = () => {
-    // TODO: Implement file picker
-    setUploadedFiles([...uploadedFiles, 'document.pdf']);
-  };
+  if (loadingData) {
+    return (
+      <Screen>
+        <ScreenHeader title="Add Lesson Plan" onBack={() => router.back()} />
+        <View style={styles.center}><ActivityIndicator size="large" color={colors.primary[300]} /></View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface.muted} />
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
-        <ScreenHeader title="Add Lesson Plan" onBack={handleBack} />
-
-        {/* Content */}
-        <View style={styles.content}>
-          {/* Class and Section Row */}
-          <View style={styles.rowContainer}>
-            <View style={styles.halfWidth}>
-              <Text style={styles.sectionLabel}>Select Class</Text>
-              <Dropdown
-                label="Class"
-                value={selectedClass}
-                options={classes}
-                onSelect={setSelectedClass}
-              />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScreenHeader title="Add Lesson Plan" onBack={() => router.back()} />
+          <View style={styles.content}>
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Select Class</Text>
+                <ModalDropdown label="Select Class" value={selectedClass} options={classes} onSelect={setSelectedClass} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Select Section</Text>
+                <ModalDropdown label="Select Section" value={selectedSection} options={sections} onSelect={setSelectedSection} />
+              </View>
             </View>
-            <View style={styles.halfWidth}>
-              <Text style={styles.sectionLabel}>Select Section</Text>
-              <Dropdown
-                label="Section"
-                value={selectedSection}
-                options={sections}
-                onSelect={setSelectedSection}
-              />
+
+            <Text style={styles.label}>Select Subject</Text>
+            <ModalDropdown label="Select Subject" value={selectedSubject} options={subjects} onSelect={setSelectedSubject} />
+
+            <Text style={styles.label}>Chapter Name</Text>
+            <TextInput style={styles.input} placeholder="Enter chapter name" placeholderTextColor={colors.neutral[400]} value={chapterName} onChangeText={setChapterName} />
+
+            <Text style={styles.label}>Topic Name</Text>
+            <TextInput style={styles.input} placeholder="Enter topic name" placeholderTextColor={colors.neutral[400]} value={topicName} onChangeText={setTopicName} />
+
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>Start Date</Text>
+                <DatePickerField value={startDate} onChange={setStartDate} placeholder="Start date" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>End Date</Text>
+                <DatePickerField value={endDate} onChange={setEndDate} placeholder="End date" />
+              </View>
             </View>
-          </View>
 
-          {/* Subject */}
-          <Text style={styles.sectionLabel}>Select Subject</Text>
-          <Dropdown
-            label="Subject"
-            value={selectedSubject}
-            options={subjects}
-            onSelect={setSelectedSubject}
-          />
+            <Text style={styles.label}>Learning Objectives</Text>
+            <TextInput style={[styles.input, styles.textArea]} placeholder="Enter learning objectives" placeholderTextColor={colors.neutral[400]} value={learningObjectives} onChangeText={setLearningObjectives} multiline numberOfLines={4} />
 
-          {/* Chapter Name */}
-          <Text style={styles.sectionLabel}>Chapter Name</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Enter chapter name"
-            placeholderTextColor={colors.neutral[400]}
-            value={chapterName}
-            onChangeText={setChapterName}
-          />
+            <Text style={styles.label}>Assessment Type</Text>
+            <ModalDropdown label="Select Assessment" value={selectedAssessment} options={assessmentTypes} onSelect={setSelectedAssessment} />
 
-          {/* Topic Name */}
-          <Text style={styles.sectionLabel}>Topic Name</Text>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Enter topic name"
-            placeholderTextColor={colors.neutral[400]}
-            value={topicName}
-            onChangeText={setTopicName}
-          />
-
-          {/* Date Range Row */}
-          <View style={styles.rowContainer}>
-            <View style={styles.halfWidth}>
-              <Text style={styles.sectionLabel}>Select Date</Text>
-              <Dropdown
-                label="Start Date"
-                value={startDate}
-                options={[
-                  { id: '2026-09-01', label: '2026-09-01' },
-                  { id: '2026-09-15', label: '2026-09-15' },
-                ]}
-                onSelect={setStartDate}
-              />
-            </View>
-            <View style={styles.halfWidth}>
-              <Text style={styles.sectionLabel}>Select Date</Text>
-              <Dropdown
-                label="End Date"
-                value={endDate}
-                options={[
-                  { id: '2026-09-15', label: '2026-09-15' },
-                  { id: '2026-10-01', label: '2026-10-01' },
-                ]}
-                onSelect={setEndDate}
-              />
-            </View>
-          </View>
-
-          {/* Learning Objectives */}
-          <Text style={styles.sectionLabel}>Learning Objectives</Text>
-          <TextInput
-            style={[styles.textInput, styles.textAreaInput]}
-            placeholder="Type your message here"
-            placeholderTextColor={colors.neutral[400]}
-            value={learningObjectives}
-            onChangeText={setLearningObjectives}
-            multiline
-            numberOfLines={4}
-          />
-
-          {/* Assessment Type */}
-          <Text style={styles.sectionLabel}>Select Assessment</Text>
-          <Dropdown
-            label="Assessment Type"
-            value={selectedAssessment}
-            options={assessmentTypes}
-            onSelect={setSelectedAssessment}
-          />
-
-          {/* File Upload */}
-          <Text style={styles.sectionLabel}>Upload File</Text>
-          <Card className="mb-4">
-            <TouchableOpacity
-              style={styles.uploadBox}
-              onPress={handleUploadFile}
-              activeOpacity={0.7}
-            >
-              <DocumentUpload size={40} color={colors.primary[300]} />
-              <Text style={styles.uploadText}>Tap to Upload file</Text>
-              <Text style={styles.uploadSubtext}>Pdf, Image</Text>
+            <TouchableOpacity style={[styles.saveBtn, saving && styles.saveBtnDisabled]} onPress={handleSaveLesson} disabled={saving} activeOpacity={0.85}>
+              {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Save Lesson Plan</Text>}
             </TouchableOpacity>
-          </Card>
-
-          {/* Uploaded Files */}
-          {uploadedFiles.length > 0 && (
-            <View style={styles.uploadedFilesContainer}>
-              <Text style={styles.sectionLabel}>Uploaded Files</Text>
-              {uploadedFiles.map((file, index) => (
-                <View key={index} style={styles.uploadedFileItem}>
-                  <Text style={styles.uploadedFileName}>{file}</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setUploadedFiles(uploadedFiles.filter((_, i) => i !== index));
-                    }}
-                  >
-                    <Text style={styles.removeFileButton}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Save Button */}
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSaveLesson}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.saveButtonText}>Save Lesson</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 32,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.neutral[900],
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  rowContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-    zIndex: 100,
-  },
-  halfWidth: {
-    flex: 1,
-  },
-
-  // ─── Dropdown Styles ───
-  dropdownContainer: {
-    marginBottom: 12,
-    position: 'relative',
-    zIndex: 1000,
-  },
-  dropdownButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: 8,
-    backgroundColor: colors.neutral[100],
-  },
-  dropdownButtonText: {
-    fontSize: 14,
-    color: colors.neutral[700],
-    flex: 1,
-  },
-  dropdownMenu: {
-    position: 'absolute',
-    top: 48,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: 8,
-    maxHeight: 200,
-    zIndex: 10000,
-  },
-  dropdownOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral[200],
-  },
-  dropdownOptionText: {
-    fontSize: 14,
-    color: colors.neutral[700],
-  },
-  dropdownOptionTextSelected: {
-    fontWeight: '600',
-    color: colors.primary[300],
-  },
-
-  // ─── Text Input ───
-  textInput: {
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: colors.neutral[900],
-    backgroundColor: colors.neutral[100],
-    marginBottom: 12,
-  },
-  textAreaInput: {
-    textAlignVertical: 'top',
-    paddingTop: 12,
-  },
-
-  // ─── Upload Box ───
-  uploadBox: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 32,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: colors.primary[300],
-    borderRadius: 12,
-    backgroundColor: 'rgba(20, 79, 204, 0.05)',
-  },
-  uploadText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary[300],
-    marginTop: 8,
-  },
-  uploadSubtext: {
-    fontSize: 12,
-    color: colors.neutral[500],
-    marginTop: 4,
-  },
-
-  // ─── Uploaded Files ───
-  uploadedFilesContainer: {
-    marginBottom: 16,
-  },
-  uploadedFileItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: colors.neutral[200],
-    borderRadius: 8,
-    backgroundColor: colors.neutral[100],
-    marginBottom: 8,
-  },
-  uploadedFileName: {
-    fontSize: 14,
-    color: colors.neutral[900],
-    flex: 1,
-  },
-  removeFileButton: {
-    fontSize: 18,
-    color: colors.secondary[300],
-    fontWeight: '300',
-  },
-
-  // ─── Save Button ───
-  saveButton: {
-    backgroundColor: colors.primary[300],
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  saveButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.neutral[100],
-  },
+  scroll: { flexGrow: 1 },
+  content: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
+  row: { flexDirection: 'row', gap: 12 },
+  label: { fontSize: 14, fontWeight: '600', color: colors.neutral[900], marginBottom: 8, marginTop: 12 },
+  input: { borderWidth: 1, borderColor: colors.neutral[200], borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, fontSize: 14, color: colors.neutral[900], backgroundColor: colors.neutral[100], marginBottom: 12 },
+  textArea: { textAlignVertical: 'top', paddingTop: 12, minHeight: 100 },
+  saveBtn: { backgroundColor: colors.primary[300], paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 24 },
+  saveBtnDisabled: { opacity: 0.65 },
+  saveBtnText: { fontSize: 15, fontWeight: '600', color: colors.neutral[100] },
 });

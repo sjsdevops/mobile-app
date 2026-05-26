@@ -40,9 +40,9 @@ function StepIndicator({ current }: { current: AttendanceStep }) {
       {/* Single row: circle — line — circle — line — circle */}
       <View style={stepStyles.stepsRow}>
         {STEPS.map((s, idx) => {
-          const done   = isAllDone ? true : s.num < current;
+          const done = isAllDone ? true : s.num < current;
           const active = !isAllDone && s.num === current;
-          const label  = done && s.num === 3 ? 'Done' : s.label;
+          const label = done && s.num === 3 ? 'Done' : s.label;
           const lineDone = idx === 0 ? line1Done : line2Done;
 
           return (
@@ -62,7 +62,7 @@ function StepIndicator({ current }: { current: AttendanceStep }) {
                 <View
                   style={[
                     stepStyles.circle,
-                    done   && stepStyles.circleDone,
+                    done && stepStyles.circleDone,
                     active && stepStyles.circleActive,
                   ]}
                 >
@@ -82,7 +82,7 @@ function StepIndicator({ current }: { current: AttendanceStep }) {
                 <Text
                   style={[
                     stepStyles.label,
-                    done   && stepStyles.labelDone,
+                    done && stepStyles.labelDone,
                     active && stepStyles.labelActive,
                   ]}
                 >
@@ -454,9 +454,9 @@ function StepReview({
     <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
       {/* Stats */}
       <View style={styles.statsRow}>
-        <StatCard value={vm.totalCount}   label="Total"   />
+        <StatCard value={vm.totalCount} label="Total" />
         <StatCard value={vm.presentCount} label="Present" valueColor={colors.green[200]} />
-        <StatCard value={vm.absentCount}  label="Absent"  valueColor={colors.secondary[300]} />
+        <StatCard value={vm.absentCount} label="Absent" valueColor={colors.secondary[300]} />
       </View>
 
       {/* Present students */}
@@ -535,9 +535,9 @@ function StepDone({
 
       {/* Stats */}
       <View style={styles.statsRow}>
-        <StatCard value={vm.totalCount}   label="Total"   />
+        <StatCard value={vm.totalCount} label="Total" />
         <StatCard value={vm.presentCount} label="Present" valueColor={colors.green[200]} />
-        <StatCard value={vm.absentCount}  label="Absent"  valueColor={colors.secondary[300]} />
+        <StatCard value={vm.absentCount} label="Absent" valueColor={colors.secondary[300]} />
       </View>
 
       {/* Actions */}
@@ -585,6 +585,22 @@ export function ClassAttendance() {
       {vm.step === 1 && <StepMark vm={vm} />}
       {vm.step === 2 && <StepReview vm={vm} />}
       {(vm.step === 3 || vm.step === 4) && <StepDone vm={vm} onDashboard={() => router.replace('/(tabs)')} onViewReport={() => router.push('/view-attendance')} />}
+
+      {/* Approve Attendance button — only for coordinator when attendance is marked */}
+      {vm.canApproveAttendance && vm.step === 1 && (
+        <View style={styles.approveSection}>
+          <TouchableOpacity
+            style={[styles.primaryBtn, { backgroundColor: '#1fc16b' }]}
+            onPress={vm.approveAttendance}
+            disabled={vm.approving}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryBtnText}>
+              {vm.approving ? 'Approving...' : 'Approve Attendance'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -725,6 +741,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.neutral[100],
+  },
+  approveSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[200],
   },
   submitBtn: {
     marginHorizontal: 16,

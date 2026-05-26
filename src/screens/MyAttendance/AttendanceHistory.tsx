@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
+  FlatList,
+  Modal,
+  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -11,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowDown2,
   ArrowLeft,
+  ArrowRight2,
   Clock,
   DocumentDownload,
   LoginCurve,
@@ -91,7 +95,7 @@ export function AttendanceHistoryScreen() {
       </View>
 
       <View style={styles.filterRow}>
-        <TouchableOpacity style={styles.filterButton} onPress={vm.onChangeMonth} activeOpacity={0.75}>
+        <TouchableOpacity style={styles.filterButton} onPress={() => vm.setMonthPickerVisible(true)} activeOpacity={0.75}>
           <Text style={styles.filterText}>{vm.monthLabel}</Text>
           <ArrowDown2 color={colors.neutral[600]} size={16} variant="Linear" />
         </TouchableOpacity>
@@ -137,6 +141,40 @@ export function AttendanceHistoryScreen() {
           ))}
         </View>
       </ScrollView>
+
+      {/* Month Picker Bottom Sheet */}
+      <Modal visible={vm.monthPickerVisible} transparent animationType="fade" onRequestClose={() => vm.setMonthPickerVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => vm.setMonthPickerVisible(false)}>
+          <View style={styles.modalSheet}>
+            {/* Year navigation */}
+            <View style={styles.yearRow}>
+              <TouchableOpacity onPress={vm.onPrevYear} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <ArrowLeft color={colors.neutral[800]} size={20} variant="Linear" />
+              </TouchableOpacity>
+              <Text style={styles.yearText}>{vm.pickerYear}</Text>
+              <TouchableOpacity onPress={vm.onNextYear} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <ArrowRight2 color={colors.neutral[800]} size={20} variant="Linear" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Month grid */}
+            <View style={styles.monthGrid}>
+              {vm.monthOptions.map((m) => (
+                <TouchableOpacity
+                  key={m.index}
+                  style={[styles.monthCell, vm.selectedMonth === m.index && vm.pickerYear === vm.selectedYear && styles.monthCellActive]}
+                  onPress={() => vm.onSelectMonth(m.index)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.monthCellText, vm.selectedMonth === m.index && vm.pickerYear === vm.selectedYear && styles.monthCellTextActive]}>
+                    {m.short}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -319,5 +357,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.neutral[900],
     fontWeight: '700',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  yearRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  yearText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.neutral[900],
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  monthCell: {
+    width: '22%',
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: colors.neutral[100],
+    alignItems: 'center',
+  },
+  monthCellActive: {
+    backgroundColor: colors.primary[300],
+  },
+  monthCellText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.neutral[800],
+  },
+  monthCellTextActive: {
+    color: '#fff',
   },
 });

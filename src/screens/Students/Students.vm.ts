@@ -1,6 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
+import { getAllClasses, type ClassItem } from '../../services/classService';
+import { getClassAttendance } from '../../services/attendanceService';
 
-export type StudentStatus = 'present' | 'absent';
+export type StudentStatus = 'present' | 'absent' | 'not_marked';
 
 export type Student = {
   id: string;
@@ -8,52 +12,164 @@ export type Student = {
   roll: string;
   className: string;
   status: StudentStatus;
-  bloodGroup: string;
-  dob: string;
-  email: string;
-  parentName: string;
-  phone: string;
-  joined: string;
 };
 
-const CLASSES = ['Class 5-A', 'Class 5-B', 'Class 5-C', 'Class 5-D'];
+export interface SectionTab {
+  label: string;
+  classId: string;
+  sectionId: string;
+  className: string;
+  sectionName: string;
+}
 
-export const STUDENTS: Student[] = [
-  { id: 's01', name: 'Ethan Patel', roll: '05', className: 'Class 5-A', status: 'present', bloodGroup: 'B+', dob: '11/03/2008', email: 'ethan.patel@school.edu.in', parentName: 'Amara Singh', phone: '+91 98525 66645', joined: '12 Aug 2022' },
-  { id: 's02', name: 'Sofia Chen', roll: '06', className: 'Class 5-A', status: 'absent', bloodGroup: 'A+', dob: '08/07/2008', email: 'sofia.chen@school.edu.in', parentName: 'Jayden Lee', phone: '+91 98764 12345', joined: '07 Jul 2021' },
-  { id: 's03', name: 'Liam Johnson', roll: '07', className: 'Class 5-A', status: 'present', bloodGroup: 'O+', dob: '20/09/2008', email: 'liam.johnson@school.edu.in', parentName: 'Maya Sharma', phone: '+91 98123 45678', joined: '13 Sep 2021' },
-  { id: 's04', name: 'Amara Singh', roll: '08', className: 'Class 5-A', status: 'present', bloodGroup: 'AB+', dob: '15/02/2008', email: 'amara.singh@school.edu.in', parentName: 'Rohan Singh', phone: '+91 98234 56789', joined: '05 Mar 2022' },
-  { id: 's05', name: 'Jayden Lee', roll: '09', className: 'Class 5-A', status: 'absent', bloodGroup: 'B+', dob: '02/01/2008', email: 'jayden.lee@school.edu.in', parentName: 'Sneha Gupta', phone: '+91 98321 76543', joined: '21 Jun 2022' },
-  { id: 's06', name: 'Isabella Garcia', roll: '10', className: 'Class 5-A', status: 'present', bloodGroup: 'O-', dob: '30/04/2008', email: 'isabella.garcia@school.edu.in', parentName: 'Nina Patel', phone: '+91 98456 12345', joined: '19 Nov 2021' },
-  { id: 's07', name: 'Mason White', roll: '11', className: 'Class 5-A', status: 'present', bloodGroup: 'A-', dob: '18/05/2008', email: 'mason.white@school.edu.in', parentName: 'Karan Mehta', phone: '+91 98654 32109', joined: '03 Oct 2021' },
-  { id: 's08', name: 'Ava Kumar', roll: '12', className: 'Class 5-A', status: 'absent', bloodGroup: 'B-', dob: '09/12/2008', email: 'ava.kumar@school.edu.in', parentName: 'Anjali Rao', phone: '+91 98745 32108', joined: '14 Feb 2022' },
-];
+function getTodayDate(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export function useStudentsVM() {
-  const [activeClass, setActiveClass] = useState(CLASSES[0]);
+  const { user } = useAuth();
+  const [tabs, setTabs] = useState<SectionTab[]>([]);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loadingTabs, setLoadingTabs] = useState(true);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
-  const classStudents = useMemo(
-    () => STUDENTS.filter((student) => student.className === activeClass),
-    [activeClass],
-  );
+  // Fetch classes and build tabs for sections where user is class teacher
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchClasses = async () => {
+      setLoadingTabs(true);
+      try {
+        const classes = await getAllClasses(user.id);
+        const sectionTabs: SectionTab[] = [];
+
+        for (const cls of classes) {
+          for (const section of cls.sections ?? []) {
+            if (section.class_teacher?.employee_id === user.id) {
+              sectionTabs.push({
+                label: `${cls.class_name} - ${section.section_name}`,
+                classId: cls.class_id,
+                sectionId: section.section_id,
+                className: cls.class_name,
+                sectionName: section.section_name,
+              });
+            }
+          }
+        }
+
+        setTabs(sectionTabs);
+        if (sectionTabs.length > 0) {
+          setActiveTabIndex(0);
+        }
+      } catch (error) {
+        console.error('[Students] Failed to fetch classes:', error);
+      } finally {
+        setLoadingTabs(false);
+      }
+    };
+
+    fetchClasses();
+  }, [user]);
+
+  // Fetch students + attendance when active tab changes
+  useEffect(() => {
+    if (!user || tabs.length === 0) return;
+    const activeTab = tabs[activeTabIndex];
+    if (!activeTab) return;
+
+    const fetchStudents = async () => {
+      setLoadingStudents(true);
+      try {
+        // Get students for this class/section
+        const studentsResponse = await api.get(
+          `/users/${user.id}/students?class=${activeTab.classId}&section=${activeTab.sectionId}`
+        );
+        const studentsData = studentsResponse.data?.data ?? studentsResponse.data;
+        const studentsList: Array<{
+          student_id: string;
+          first_name: string;
+          last_name: string;
+          roll_number?: string;
+        }> = studentsData?.items ?? studentsData ?? [];
+
+        // Get today's attendance
+        let attendanceMap = new Map<string, { is_present: boolean; is_absent: boolean }>();
+        try {
+          const attendanceData = await getClassAttendance(
+            activeTab.classId,
+            activeTab.sectionId,
+            getTodayDate()
+          );
+          if (attendanceData.items && attendanceData.items.length > 0) {
+            for (const item of attendanceData.items) {
+              attendanceMap.set(item.student_id, {
+                is_present: item.is_present,
+                is_absent: item.is_absent,
+              });
+            }
+          }
+        } catch {
+          // No attendance yet
+        }
+
+        // Merge
+        const merged: Student[] = studentsList.map((s, index) => {
+          const fullName = `${s.first_name || ''} ${s.last_name || ''}`.trim();
+          const record = attendanceMap.get(s.student_id);
+
+          let status: StudentStatus = 'not_marked';
+          if (record) {
+            if (record.is_present) status = 'present';
+            else if (record.is_absent) status = 'absent';
+          }
+
+          return {
+            id: s.student_id,
+            name: fullName || `Student ${index + 1}`,
+            roll: s.roll_number || String(index + 1).padStart(2, '0'),
+            className: activeTab.label,
+            status,
+          };
+        });
+
+        setStudents(merged);
+      } catch (error) {
+        console.error('[Students] Failed to fetch students:', error);
+        setStudents([]);
+      } finally {
+        setLoadingStudents(false);
+      }
+    };
+
+    fetchStudents();
+  }, [user, tabs, activeTabIndex]);
 
   const filteredStudents = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return classStudents;
-    return classStudents.filter((student) =>
+    if (!query) return students;
+    return students.filter((student) =>
       student.name.toLowerCase().includes(query) ||
-      student.roll.toLowerCase().includes(query) ||
-      student.email.toLowerCase().includes(query),
+      student.roll.toLowerCase().includes(query),
     );
-  }, [classStudents, searchQuery]);
+  }, [students, searchQuery]);
 
   const totalCount = filteredStudents.length;
-  const presentCount = filteredStudents.filter((student) => student.status === 'present').length;
-  const absentCount = filteredStudents.filter((student) => student.status === 'absent').length;
+  const presentCount = filteredStudents.filter((s) => s.status === 'present').length;
+  const absentCount = filteredStudents.filter((s) => s.status === 'absent').length;
+
+  const classes = tabs.map((t) => t.label);
+  const activeClass = tabs[activeTabIndex]?.label ?? '';
+
+  function setActiveClass(label: string) {
+    const idx = tabs.findIndex((t) => t.label === label);
+    if (idx >= 0) setActiveTabIndex(idx);
+  }
 
   return {
-    classes: CLASSES,
+    classes,
     activeClass,
     setActiveClass,
     searchQuery,
@@ -62,5 +178,7 @@ export function useStudentsVM() {
     totalCount,
     presentCount,
     absentCount,
+    loadingTabs,
+    loadingStudents,
   };
 }

@@ -25,31 +25,33 @@ import {
 } from 'iconsax-react-nativejs';
 import { useRouter } from 'expo-router';
 import { colors } from '../../theme/colors';
-import { SCHOOL, SHIFT, useMyAttendanceVM } from './MyAttendance.vm';
+import { SCHOOL, useMyAttendanceVM } from './MyAttendance.vm';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const THUMB_SIZE = 48;
-const SWIPE_H    = THUMB_SIZE + 12;
-const ORANGE     = '#F97316';
+const SWIPE_H = THUMB_SIZE + 12;
+const ORANGE = '#F97316';
 
 // ─── Swipe-to-Punch Button ────────────────────────────────────────────────────
 
 function SwipePunchButton({
   onComplete,
   disabled = false,
+  label = 'Swipe to Punch In',
 }: {
   onComplete: () => void;
   disabled?: boolean;
+  label?: string;
 }) {
-  const TRACK_W    = SCREEN_W - 48;
-  const TRAVEL     = TRACK_W - THUMB_SIZE - 12;
+  const TRACK_W = SCREEN_W - 48;
+  const TRAVEL = TRACK_W - THUMB_SIZE - 12;
   const translateX = useRef(new Animated.Value(0)).current;
-  const done       = useRef(false);
+  const done = useRef(false);
 
   const pan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => !disabled,
-      onMoveShouldSetPanResponder:  () => !disabled,
+      onMoveShouldSetPanResponder: () => !disabled,
       onPanResponderMove: (_, { dx }) => {
         translateX.setValue(Math.max(0, Math.min(dx, TRAVEL)));
       },
@@ -74,7 +76,7 @@ function SwipePunchButton({
   return (
     <View style={[styles.swipeTrack, { width: TRACK_W, height: SWIPE_H, borderRadius: SWIPE_H / 2 }]}>
       <Animated.Text style={[styles.swipeText, { opacity: textOpacity }]}>
-        Swipe to Punch In
+        {label}
       </Animated.Text>
       <Animated.View
         {...pan.panHandlers}
@@ -136,7 +138,7 @@ function HomeView({
       {/* ── Orange greeting card ── */}
       <View style={styles.greetCard}>
         <View style={styles.greetCardDecor} />
-        <Text style={styles.greetName}>Good Morning, Kiran</Text>
+        <Text style={styles.greetName}>Good Morning, {vm.employeeName || 'User'}</Text>
         <Text style={styles.greetDate}>{vm.dateStr}</Text>
       </View>
 
@@ -149,20 +151,14 @@ function HomeView({
       </View>
 
       {/* ── Status ── */}
-      <Text style={styles.statusTitle}>You haven't punched in yet</Text>
-      <Text style={styles.statusSubtitle}>
-        {'Please mark your attendance to\nstart the day'}
-      </Text>
+      <Text style={styles.statusTitle}>{vm.statusTitle}</Text>
+      <Text style={styles.statusSubtitle}>{vm.statusSubtitle}</Text>
 
       {/* ── Shift times ── */}
       <View style={styles.shiftRow}>
         <View style={styles.shiftItem}>
-          <Text style={styles.shiftLabel}>Shift Start</Text>
-          <Text style={styles.shiftValue}>{SHIFT.start}</Text>
-        </View>
-        <View style={styles.shiftItem}>
-          <Text style={styles.shiftLabel}>Shift End</Text>
-          <Text style={styles.shiftValue}>{SHIFT.end}</Text>
+          <Text style={styles.shiftLabel}>Shift</Text>
+          <Text style={styles.shiftValue}>{vm.SHIFT?.display ?? 'Not set'}</Text>
         </View>
       </View>
 
@@ -175,8 +171,12 @@ function HomeView({
             <ActivityIndicator color="#fff" size="small" />
             <Text style={styles.swipeText}>Getting location…</Text>
           </View>
+        ) : vm.todayCheckOut ? (
+          <View style={[styles.swipeTrack, { width: SCREEN_W - 48, height: SWIPE_H, borderRadius: SWIPE_H / 2, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.green[200] }]}>
+            <Text style={styles.swipeText}>✓ Attendance Complete</Text>
+          </View>
         ) : (
-          <SwipePunchButton onComplete={vm.onSwipePunchIn} />
+          <SwipePunchButton onComplete={vm.onSwipePunchIn} label={vm.swipeLabel} />
         )}
       </View>
       <View style={{ height: 32 }} />
@@ -214,9 +214,9 @@ function ConfirmView({
       <MapView
         style={StyleSheet.absoluteFill}
         initialRegion={{
-          latitude:       SCHOOL.latitude,
-          longitude:      SCHOOL.longitude,
-          latitudeDelta:  0.012,
+          latitude: SCHOOL.latitude,
+          longitude: SCHOOL.longitude,
+          latitudeDelta: 0.012,
           longitudeDelta: 0.012,
         }}
         showsUserLocation={false}
@@ -264,7 +264,7 @@ function ConfirmView({
           activeOpacity={0.85}
         >
           <Scan color="#fff" size={18} variant="Bold" />
-          <Text style={styles.primaryBtnText}>Confirm Punch In</Text>
+          <Text style={styles.primaryBtnText}>{vm.confirmLabel}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -285,7 +285,7 @@ function LateEntryView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> }) {
 
       {/* Summary card */}
       <View style={styles.infoCard}>
-        <InfoRow label="Reporting Time" value={SHIFT.start} />
+        <InfoRow label="Reporting Time" value={vm.SHIFT?.display ?? '-'} />
         <View style={styles.infoCardDivider} />
         <InfoRow
           label="Punch Time"
@@ -442,7 +442,7 @@ function InfoRow({
 
 export function MyAttendanceScreen() {
   const router = useRouter();
-  const vm     = useMyAttendanceVM();
+  const vm = useMyAttendanceVM();
 
   const isMapView = vm.view === 'confirm';
 
@@ -480,143 +480,143 @@ export function MyAttendanceScreen() {
 
 const styles = StyleSheet.create({
   safe: {
-    flex:            1,
+    flex: 1,
     backgroundColor: colors.surface.light,
   },
   flex: { flex: 1 },
 
   // ── Home screen header ──
   homeHeader: {
-    flexDirection:     'row',
-    alignItems:        'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical:   12,
-    backgroundColor:   colors.surface.light,
-    gap:               12,
+    paddingVertical: 12,
+    backgroundColor: colors.surface.light,
+    gap: 12,
   },
   homeHeaderSpace: {
     justifyContent: 'space-between',
   },
   backBtn: {
-    width:           36,
-    height:          36,
-    borderRadius:    18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.neutral[200],
-    alignItems:      'center',
-    justifyContent:  'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   homeHeaderTitle: {
-    fontSize:   17,
+    fontSize: 17,
     fontWeight: '600',
-    color:      colors.neutral[900],
+    color: colors.neutral[900],
   },
   headerDivider: {
-    height:          1,
+    height: 1,
     backgroundColor: colors.neutral[200],
   },
 
   // ── Mini header (used by map view) ──
   miniHeader: {
-    flexDirection:   'row',
-    alignItems:      'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
     backgroundColor: colors.surface.light,
   },
   miniHeaderLight: { backgroundColor: 'transparent' },
   miniHeaderTitle: {
-    flex:       1,
-    textAlign:  'center',
-    fontSize:   17,
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
     fontWeight: '600',
-    color:      colors.neutral[900],
+    color: colors.neutral[900],
   },
   miniHeaderTitleLight: { color: '#fff' },
 
   // ── Greeting card ──
   greetCard: {
-    backgroundColor:  ORANGE,
+    backgroundColor: ORANGE,
     marginHorizontal: 20,
-    borderRadius:     16,
-    padding:          20,
-    marginTop:        16,
-    overflow:         'hidden',
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 16,
+    overflow: 'hidden',
   },
   greetCardDecor: {
-    position:        'absolute',
-    right:           -28,
-    top:             -28,
-    width:           110,
-    height:          110,
-    borderRadius:    55,
+    position: 'absolute',
+    right: -28,
+    top: -28,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     backgroundColor: 'rgba(255,255,255,0.18)',
   },
   greetName: {
-    fontSize:   18,
+    fontSize: 18,
     fontWeight: '700',
-    color:      '#fff',
+    color: '#fff',
   },
   greetDate: {
-    fontSize:   13,
-    color:      'rgba(255,255,255,0.85)',
-    marginTop:  4,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 4,
   },
 
   // ── Clock (below card) ──
   greetClock: {
-    fontSize:     52,
-    fontWeight:   '800',
-    color:        colors.neutral[900],
-    textAlign:    'center',
+    fontSize: 52,
+    fontWeight: '800',
+    color: colors.neutral[900],
+    textAlign: 'center',
     letterSpacing: -1,
-    marginTop:    24,
+    marginTop: 24,
   },
 
   // ── Finger scan icon circle ──
   greetIconCircle: {
-    width:           64,
-    height:          64,
-    borderRadius:    32,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: 'rgba(249, 115, 22, 0.12)',
-    alignItems:      'center',
-    justifyContent:  'center',
-    alignSelf:       'center',
-    marginTop:       20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    marginTop: 20,
   },
 
   // ── Status ──
   statusTitle: {
-    fontSize:   20,
+    fontSize: 20,
     fontWeight: '700',
-    color:      colors.neutral[900],
-    textAlign:  'center',
-    marginTop:  16,
+    color: colors.neutral[900],
+    textAlign: 'center',
+    marginTop: 16,
   },
   statusSubtitle: {
-    fontSize:   14,
-    color:      colors.neutral[500],
-    textAlign:  'center',
-    marginTop:  6,
+    fontSize: 14,
+    color: colors.neutral[500],
+    textAlign: 'center',
+    marginTop: 6,
     lineHeight: 20,
   },
 
   // ── Shift ──
   shiftRow: {
-    flexDirection:  'row',
+    flexDirection: 'row',
     justifyContent: 'center',
-    gap:            64,
-    marginTop:      24,
+    gap: 64,
+    marginTop: 24,
   },
   shiftItem: { alignItems: 'center' },
   shiftLabel: {
     fontSize: 13,
-    color:    colors.neutral[500],
+    color: colors.neutral[500],
   },
   shiftValue: {
-    fontSize:   16,
+    fontSize: 16,
     fontWeight: '700',
-    color:      colors.neutral[900],
-    marginTop:  4,
+    color: colors.neutral[900],
+    marginTop: 4,
   },
 
   // ── Swipe ──
@@ -626,117 +626,117 @@ const styles = StyleSheet.create({
   },
   swipeTrack: {
     backgroundColor: colors.primary[300],
-    alignItems:      'center',
-    justifyContent:  'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   swipeText: {
-    fontSize:   15,
+    fontSize: 15,
     fontWeight: '600',
-    color:      '#fff',
+    color: '#fff',
     letterSpacing: 0.3,
   },
   swipeThumb: {
-    position:        'absolute',
-    left:            6,
-    width:           THUMB_SIZE,
-    height:          THUMB_SIZE,
-    borderRadius:    THUMB_SIZE / 2,
+    position: 'absolute',
+    left: 6,
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: THUMB_SIZE / 2,
     backgroundColor: '#fff',
-    alignItems:      'center',
-    justifyContent:  'center',
-    shadowColor:     '#000',
-    shadowOpacity:   0.18,
-    shadowRadius:    4,
-    elevation:       3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 3,
   },
   swipeArrow: {
-    fontSize:   22,
+    fontSize: 22,
     fontWeight: '700',
-    color:      colors.primary[300],
+    color: colors.primary[300],
     lineHeight: 26,
   },
 
   // ── Map / Confirm ──
   mapHeader: {
-    position:        'absolute',
-    top:             0,
-    left:            0,
-    right:           0,
-    zIndex:          10,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     backgroundColor: 'rgba(255,255,255,0.95)',
-    flexDirection:   'row',
-    alignItems:      'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 12,
   },
   mapHeaderText: {
-    flex:       1,
-    textAlign:  'center',
-    fontSize:   17,
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 17,
     fontWeight: '600',
-    color:      colors.neutral[900],
+    color: colors.neutral[900],
   },
   mapBackBtn: {
-    width:           36,
-    height:          36,
-    borderRadius:    18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: colors.neutral[100],
-    alignItems:      'center',
-    justifyContent:  'center',
-    shadowColor:     '#000',
-    shadowOpacity:   0.1,
-    shadowRadius:    4,
-    elevation:       2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   mapHeaderTitle: { flex: 1 },
   mapCard: {
-    position:         'absolute',
-    bottom:           0,
-    left:             0,
-    right:            0,
-    backgroundColor:  '#fff',
-    borderTopLeftRadius:  20,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding:          20,
-    paddingBottom:    32,
-    shadowColor:      '#000',
-    shadowOpacity:    0.12,
-    shadowRadius:     12,
-    elevation:        8,
+    padding: 20,
+    paddingBottom: 32,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
   },
   mapStatusRow: {
     flexDirection: 'row',
-    alignItems:    'center',
-    gap:           8,
-    marginBottom:  12,
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
   mapStatusText: {
-    fontSize:   15,
+    fontSize: 15,
     fontWeight: '700',
-    color:      colors.green[200],
+    color: colors.green[200],
   },
   divider: {
-    height:          1,
+    height: 1,
     backgroundColor: colors.neutral[200],
-    marginBottom:    12,
+    marginBottom: 12,
   },
   mapInfoRow: {
-    flexDirection:  'row',
-    alignItems:     'center',
-    gap:            8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     paddingVertical: 6,
   },
   mapInfoLabel: {
     fontSize: 13,
-    color:    colors.neutral[500],
-    flex:     1,
+    color: colors.neutral[500],
+    flex: 1,
   },
   mapInfoValue: {
-    fontSize:   13,
+    fontSize: 13,
     fontWeight: '600',
-    color:      colors.neutral[800],
-    maxWidth:   180,
-    textAlign:  'right',
+    color: colors.neutral[800],
+    maxWidth: 180,
+    textAlign: 'right',
   },
 
   // ── Centred content views ──
@@ -747,127 +747,127 @@ const styles = StyleSheet.create({
 
   // ── Emoji illustration ──
   emoji: {
-    fontSize:   52,
-    textAlign:  'center',
+    fontSize: 52,
+    textAlign: 'center',
     lineHeight: 64,
     marginBottom: 16,
   },
 
   // ── View titles ──
   viewTitle: {
-    fontSize:     22,
-    fontWeight:   '700',
-    color:        colors.neutral[900],
-    textAlign:    'center',
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.neutral[900],
+    textAlign: 'center',
     marginBottom: 8,
   },
   viewSubtitle: {
-    fontSize:    14,
-    color:       colors.neutral[500],
-    textAlign:   'center',
+    fontSize: 14,
+    color: colors.neutral[500],
+    textAlign: 'center',
     paddingHorizontal: 32,
-    lineHeight:  20,
+    lineHeight: 20,
     marginBottom: 24,
   },
 
   // ── Info card (late / outside / success) ──
   infoCard: {
-    backgroundColor:  '#fff',
-    borderRadius:     16,
+    backgroundColor: '#fff',
+    borderRadius: 16,
     marginHorizontal: 24,
     paddingHorizontal: 16,
-    shadowColor:      '#000',
-    shadowOpacity:    0.06,
-    shadowRadius:     8,
-    shadowOffset:     { width: 0, height: 2 },
-    elevation:        2,
-    width:            SCREEN_W - 48,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    width: SCREEN_W - 48,
   },
   infoCardDivider: {
-    height:          1,
+    height: 1,
     backgroundColor: colors.neutral[200],
   },
   infoRow: {
-    flexDirection:  'row',
-    alignItems:     'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
   },
   infoLabel: {
     fontSize: 14,
-    color:    colors.neutral[600],
+    color: colors.neutral[600],
   },
   infoValue: {
-    fontSize:   14,
+    fontSize: 14,
     fontWeight: '600',
-    color:      colors.neutral[900],
+    color: colors.neutral[900],
   },
 
   // ── Outside campus specific ──
   outsideIconCircle: {
-    width:           96,
-    height:          96,
-    borderRadius:    48,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: colors.secondary.alpha,
-    alignItems:      'center',
-    justifyContent:  'center',
-    marginBottom:    20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   outsideBtnGroup: {
-    flexDirection:    'row',
-    gap:              12,
+    flexDirection: 'row',
+    gap: 12,
     marginHorizontal: 24,
-    marginBottom:     32,
-    alignItems:       'center',
+    marginBottom: 32,
+    alignItems: 'center',
   },
   ghostBtn: {
-    paddingVertical:   14,
+    paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius:      12,
-    borderWidth:       1.5,
-    borderColor:       colors.primary[300],
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.primary[300],
   },
   ghostBtnText: {
-    fontSize:   14,
+    fontSize: 14,
     fontWeight: '600',
-    color:      colors.primary[300],
+    color: colors.primary[300],
   },
 
   // ── Success illustration ──
   successIconWrap: {
-    width:         96,
-    height:        96,
-    alignItems:    'center',
+    width: 96,
+    height: 96,
+    alignItems: 'center',
     justifyContent: 'center',
-    marginBottom:  24,
+    marginBottom: 24,
   },
   successBadge: {
-    position:   'absolute',
-    bottom:     -4,
-    right:      -4,
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
     backgroundColor: '#fff',
-    borderRadius:    16,
+    borderRadius: 16,
   },
 
   // ── Primary button ──
   primaryBtn: {
-    flexDirection:    'row',
-    alignItems:       'center',
-    justifyContent:   'center',
-    gap:              8,
-    backgroundColor:  colors.primary[300],
-    borderRadius:     14,
-    paddingVertical:  16,
-    marginTop:        16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary[300],
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginTop: 16,
   },
   fullWidthBtn: {
     marginHorizontal: 24,
-    marginBottom:     32,
-    width:            SCREEN_W - 48,
+    marginBottom: 32,
+    width: SCREEN_W - 48,
   },
   primaryBtnText: {
-    fontSize:   15,
+    fontSize: 15,
     fontWeight: '700',
-    color:      '#fff',
+    color: '#fff',
   },
 });

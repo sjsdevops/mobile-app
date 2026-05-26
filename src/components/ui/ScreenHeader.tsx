@@ -29,7 +29,7 @@ export function CircleIconBtn({
 type ScreenHeaderProps = {
   title: string;
   subtitle?: string;
-  onBack?: () => void;
+  onBack?: (() => void) | null;
   /** Optional element rendered on the right; if omitted a spacer keeps the title centred */
   rightElement?: ReactNode;
   showDivider?: boolean;
@@ -45,9 +45,13 @@ export function ScreenHeader({
   return (
     <>
       <View style={hStyles.row}>
-        <CircleIconBtn onPress={onBack}>
-          <ArrowLeft color={colors.neutral[800]} size={18} variant="Linear" />
-        </CircleIconBtn>
+        {onBack !== null ? (
+          <CircleIconBtn onPress={onBack}>
+            <ArrowLeft color={colors.neutral[800]} size={18} variant="Linear" />
+          </CircleIconBtn>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
 
         <View style={hStyles.center}>
           <Text style={hStyles.title}>{title}</Text>
@@ -57,7 +61,7 @@ export function ScreenHeader({
         {rightElement ? (
           rightElement
         ) : (
-          <View style={hStyles.btn} />
+          <View style={{ width: 40 }} />
         )}
       </View>
 
