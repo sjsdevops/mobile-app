@@ -107,11 +107,11 @@ export function useStudentsExamResultsVM(studentId: string | undefined) {
               academicPerformance: performanceMap,
             };
 
-            // Each exam becomes a section with the exam as both a test and overall
+            // Each exam becomes a section with only the overall card
             sections.push({
               id: exam.exam_id,
               title: exam.exam_name,
-              tests: [examResult],
+              tests: [],
               overall: {
                 ...examResult,
                 id: `${exam.exam_id}-overall`,

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
 import { getHomeworks, updateHomework, type HomeworkItem } from '../../services/homeworkService';
 import { getAssignedSubjects, type AssignedClass } from '../../services/lessonPlanService';
 import { getAllClasses, type ClassItem } from '../../services/classService';
@@ -27,13 +28,50 @@ export function useHomeworkVM() {
         if (!user) return;
         (async () => {
             try {
-                const [assignedData, classesData] = await Promise.all([
-                    getAssignedSubjects(user.id, user.id),
-                    getAllClasses(user.id),
-                ]);
-                setAssignedClasses(assignedData.classes ?? []);
-                setAllClassesData(classesData);
-                if (assignedData.classes?.length > 0) setSelectedClass(assignedData.classes[0].class_id);
+                const isStudent = user.role === 'student';
+
+                if (isStudent) {
+                    // For students: get profile for class/section, then get subjects
+                    const profileResp = await api.get(`/mobile/student/${user.id}/profile`);
+                    const profile = profileResp.data?.data ?? profileResp.data;
+                    const classId = profile.academic_info?.class_id;
+                    const sectionId = profile.academic_info?.section_id;
+                    const className = profile.academic_info?.class_name ?? '';
+                    const sectionName = profile.academic_info?.section_name ?? '';
+
+                    if (classId && sectionId) {
+                        setSelectedClass(classId);
+                        setSelectedSection(sectionId);
+
+                        // Get subjects for this section
+                        const subjectsResp = await api.get(`/acadamics/users/${user.id}/subjects?class_id=${classId}`);
+                        const subjectsData = subjectsResp.data?.data ?? subjectsResp.data;
+                        const subjectItems = subjectsData?.items ?? subjectsData ?? [];
+                        const sectionSubjects = subjectItems
+                            .filter((s: any) => s.section?.section_id === sectionId)
+                            .map((s: any) => ({
+                                section_subject_id: s.section_subject_id,
+                                subject_id: s.subject_id,
+                                subject_name: s.subject_name,
+                                subject_code: s.subject_code ?? '',
+                                subject_type: s.subject_type ?? 'Core',
+                            }));
+
+                        setAssignedClasses([{
+                            class_id: classId, class_name: className, class_type: '',
+                            sections: [{ section_id: sectionId, section_name: sectionName, subjects: sectionSubjects }],
+                        }]);
+                        if (sectionSubjects.length > 0) setSelectedSubject(sectionSubjects[0].subject_id);
+                    }
+                } else {
+                    const [assignedData, classesData] = await Promise.all([
+                        getAssignedSubjects(user.id, user.id),
+                        getAllClasses(user.id),
+                    ]);
+                    setAssignedClasses(assignedData.classes ?? []);
+                    setAllClassesData(classesData);
+                    if (assignedData.classes?.length > 0) setSelectedClass(assignedData.classes[0].class_id);
+                }
             } catch (err) {
                 console.error('[Homework] Failed to fetch data:', err);
             }
@@ -94,12 +132,12 @@ export function useHomeworkVM() {
     }, [homeworks, filterTab]);
 
     // Role checks for selected section
-    const isClassTeacher = useMemo(() => {
-        if (!user || !selectedClass || !selectedSection) return false;
-        const cls = allClassesData.find((c) => c.class_id === selectedClass);
+    const isSubjectTeacher = useMemo(() => {
+        if (!user || !selectedClass || !selectedSection || !selectedSubject) return false;
+        const cls = assignedClasses.find((c) => c.class_id === selectedClass);
         const sec = cls?.sections.find((s) => s.section_id === selectedSection);
-        return sec?.class_teacher?.employee_id === user.id;
-    }, [user, selectedClass, selectedSection, allClassesData]);
+        return (sec?.subjects ?? []).some((s) => s.subject_id === selectedSubject);
+    }, [user, selectedClass, selectedSection, selectedSubject, assignedClasses]);
 
     const isCoordinator = useMemo(() => {
         if (!user || !selectedClass || !selectedSection) return false;
@@ -108,11 +146,11 @@ export function useHomeworkVM() {
         return sec?.coordinator?.employee_id === user.id;
     }, [user, selectedClass, selectedSection, allClassesData]);
 
-    // Can add homework: only if class teacher
-    const canAddHomework = isClassTeacher;
+    // Can add homework: only if subject teacher (not student)
+    const canAddHomework = isSubjectTeacher && user?.role !== 'student';
 
-    // Can approve: if coordinator
-    const canApprove = isCoordinator;
+    // Can approve: if coordinator (not student)
+    const canApprove = isCoordinator && user?.role !== 'student';
 
     // Approve homework
     const approveHomework = useCallback(async (homeworkId: string) => {

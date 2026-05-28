@@ -59,7 +59,9 @@ export function useAttendanceVM() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [attendanceMarked, setAttendanceMarked] = useState(false);
+  const [alreadyApproved, setAlreadyApproved] = useState(false);
   const [isCoordinator, setIsCoordinator] = useState(false);
+  const [isClassTeacher, setIsClassTeacher] = useState(false);
   const [approving, setApproving] = useState(false);
 
   // Check if user is coordinator for this section
@@ -70,7 +72,10 @@ export function useAttendanceVM() {
         const classes = await getAllClasses(user.id);
         const cls = classes.find((c) => c.class_id === classId);
         const sec = cls?.sections.find((s) => s.section_id === sectionId);
-        setIsCoordinator(sec?.coordinator?.employee_id === user.id);
+        const coordMatch = sec?.coordinator?.employee_id === user.id;
+        console.log('[Attendance] Coordinator check:', { coordinatorId: sec?.coordinator?.employee_id, userId: user.id, match: coordMatch, attendanceMarked });
+        setIsCoordinator(coordMatch);
+        setIsClassTeacher(sec?.class_teacher?.employee_id === user.id);
       } catch { }
     })();
   }, [user, classId, sectionId]);
@@ -101,6 +106,9 @@ export function useAttendanceVM() {
               attendanceMap.set(item.student_id, item);
             }
             setAttendanceMarked(true);
+            // Check if all are already approved
+            const allApproved = attendanceData.items.every((item: any) => item.is_approved === true);
+            setAlreadyApproved(allApproved);
           }
         } catch {
           // Not yet marked
@@ -179,8 +187,9 @@ export function useAttendanceVM() {
     }
   }
 
-  // Approve attendance (coordinator only)
+  // Approve attendance: coordinator only, when attendance API returned non-empty list
   const canApproveAttendance = isCoordinator && attendanceMarked;
+  console.log('[Attendance] canApprove:', { isCoordinator, attendanceMarked, canApproveAttendance });
 
   async function approveAttendance() {
     if (!user || !classId || !sectionId) return;
@@ -227,5 +236,6 @@ export function useAttendanceVM() {
     approveAttendance,
     approving,
     attendanceMarked,
+    alreadyApproved,
   };
 }

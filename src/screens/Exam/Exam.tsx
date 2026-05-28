@@ -441,13 +441,24 @@ function EnterMarks({ vm }: { vm: ReturnType<typeof useExamVM> }) {
 
       {/* Bottom buttons */}
       <View style={styles.bottomRow}>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={vm.goToPreview}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.primaryBtnText}>Review & Submit</Text>
-        </TouchableOpacity>
+        {vm.canApproveMarks ? (
+          <TouchableOpacity
+            style={[styles.primaryBtn, { backgroundColor: '#1fc16b' }]}
+            onPress={vm.approveMarks}
+            activeOpacity={0.85}
+            disabled={vm.submitting}
+          >
+            <Text style={styles.primaryBtnText}>{vm.submitting ? 'Approving...' : 'Approve Marks'}</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={vm.goToPreview}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryBtnText}>Review & Submit</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -543,17 +554,6 @@ function PreviewSubmission({ vm }: { vm: ReturnType<typeof useExamVM> }) {
           <Text style={styles.primaryBtnText}>Confirm & Submit</Text>
         </TouchableOpacity>
       </View>
-      {vm.canApproveMarks && (
-        <View style={[styles.bottomRow, { borderTopWidth: 0, paddingTop: 0 }]}>
-          <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: '#1fc16b' }]}
-            onPress={vm.approveMarks}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>Approve Marks</Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </SafeAreaView>
   );
 }

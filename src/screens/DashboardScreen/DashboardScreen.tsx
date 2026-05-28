@@ -29,6 +29,8 @@ import type { IconProps } from 'iconsax-react-nativejs';
 import { colors } from '../../theme/colors';
 import { useThemeColors } from '../../theme/ThemeContext';
 import { useDashboardVM, type AssignedClassCard } from './DashboardScreen.vm';
+import { AppTour, type TourStep } from '../../components/ui/AppTour';
+import { useAuth } from '../../contexts/AuthContext';
 
 type IconComponent = FC<IconProps>;
 
@@ -198,9 +200,25 @@ export function DashboardScreen() {
   const displayName = user?.firstName || 'User';
   const screenWidth = Dimensions.get('window').width - 40; // 20px padding each side
 
+  // Build tour steps based on visible widgets
+  const tourSteps: TourStep[] = [];
+  tourSteps.push({ id: 'welcome', title: 'Welcome to Sree Jayam School!', description: 'This is your dashboard. Here you can access all your daily activities and manage your classes.' });
+  if (assignedClasses.length > 0) {
+    tourSteps.push({ id: 'class-card', title: 'Your Assigned Classes', description: 'Swipe to see all your assigned class sections with student count and attendance.' });
+  }
+  if (filteredClassItems.length > 0) {
+    tourSteps.push({ id: 'class-mgmt', title: 'Class Management', description: 'Access timetable, lesson plans, attendance, homework, exams and more from here.' });
+  }
+  if (filteredWorkspaceItems.length > 0) {
+    tourSteps.push({ id: 'workspace', title: 'My Workspace', description: 'Track your own attendance, payroll and leave from this section.' });
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface.light} />
+
+      {/* App Tour */}
+      <AppTour steps={tourSteps} />
 
       {/* ── Top header ── */}
       <View style={styles.header}>
@@ -269,7 +287,7 @@ export function DashboardScreen() {
         )}
 
         {/* ── Today's Overview ── */}
-        <SectionTitle title="Today's Overview" />
+        {/* <SectionTitle title="Today's Overview" />
         <View style={styles.overviewCard}>
           <View style={[styles.overviewIconCircle, { backgroundColor: colors.yellow.alpha }]}>
             <Timer1 color={colors.yellow[200]} size={24} variant="Bold" />
@@ -278,7 +296,7 @@ export function DashboardScreen() {
             <Text style={styles.overviewSubLabel}>Next Class</Text>
             <Text style={styles.overviewValue}>10:45 AM - Class 10 - A</Text>
           </View>
-        </View>
+        </View> */}
 
         {/* ── Class Management ── */}
         {filteredClassItems.length > 0 && (
@@ -333,10 +351,14 @@ export function DashboardScreen() {
 
 export function StudentDashboardScreen() {
   const router = useRouter();
+  const themeColors = useThemeColors();
+  const { user } = useAuth();
 
   const nextClass = useMemo(() => {
     return getNextClass();
   }, []);
+
+  const displayName = user?.firstName || 'Student';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -350,17 +372,17 @@ export function StudentDashboardScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.avatarBtn} onPress={() => router.push('/profile')}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>S</Text>
+              <Text style={styles.avatarText}>{displayName.charAt(0).toUpperCase()}</Text>
             </View>
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.greeting}>Hey Student! {getGreeting()}</Text>
+        <Text style={styles.greeting}>Hey {displayName}! {getGreeting()}</Text>
         <Text style={styles.quote}>"Great dreams of great dreamers are always transcended."</Text>
 
-        <View style={styles.studentClassCard}>
+        <View style={[styles.studentClassCard, { backgroundColor: themeColors.primary[300] }]}>
           <View style={styles.classCardDecorCircle} />
           <View style={styles.classCardDecorCircle2} />
           <Text style={styles.classCardTag}>CLASS TEACHER</Text>
@@ -379,7 +401,7 @@ export function StudentDashboardScreen() {
           </View>
         </View>
 
-        <SectionTitle title="Today's Overview" />
+        {/* <SectionTitle title="Today's Overview" />
         <View style={styles.overviewCard}>
           <View style={[styles.overviewIconCircle, { backgroundColor: colors.yellow.alpha }]}>
             <Timer1 color={colors.yellow[200]} size={24} variant="Bold" />
@@ -392,7 +414,7 @@ export function StudentDashboardScreen() {
                 : 'No classes for today'}
             </Text>
           </View>
-        </View>
+        </View> */}
 
         <SectionTitle title="Class Management" />
         <View style={styles.grid}>
@@ -407,8 +429,9 @@ export function StudentDashboardScreen() {
                 item.id === 'timetable' ? () => router.push('/timetable') :
                   item.id === 'lesson' ? () => router.push('/lesson-plan') :
                     item.id === 'attendance' ? () => router.push('/view-attendance') :
-                      item.id === 'exams' ? () => router.push('/student-exam-results') :
-                        undefined
+                      item.id === 'homework' ? () => router.push('/homework') :
+                        item.id === 'exams' ? () => router.push('/student-exam-results') :
+                          undefined
               }
             />
           ))}

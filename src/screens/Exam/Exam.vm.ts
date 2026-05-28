@@ -321,8 +321,13 @@ export function useExamVM() {
     }
   }
 
-  // Can approve: coordinator + exam is submitted
-  const canApproveMarks = isCoordinatorForSection && selectedExam?.status === 'submitted';
+  // Can approve: coordinator + all students have submitted status with marks
+  const canApproveMarks = useMemo(() => {
+    if (!isCoordinatorForSection || !selectedExam) return false;
+    // All students must have status 'submitted' and obtained_marks not null
+    return selectedExam.students.length > 0 &&
+      selectedExam.students.every((s) => s.status === 'submitted' && s.obtained_marks !== null);
+  }, [isCoordinatorForSection, selectedExam]);
 
   return {
     view,

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Image,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -12,6 +13,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { useAuth } from '../../contexts/AuthContext';
 import { ExamSection, ExamResult, useStudentsExamResultsVM } from './StudentsExamResults.vm';
 
 interface SchoolInfo {
@@ -127,9 +129,7 @@ function PieChart({ data }: { data: { [key: string]: number } }) {
 function SchoolCard({ school }: { school: SchoolInfo }) {
   return (
     <View style={styles.schoolCard}>
-      <View style={styles.schoolLogo}>
-        <Text style={styles.schoolLogoText}>S</Text>
-      </View>
+      <Image source={require('../../../assets/icon.png')} style={styles.schoolLogoImg} />
       <View style={styles.schoolInfo}>
         <Text style={styles.schoolName}>{school.name}</Text>
         <Text style={styles.schoolType}>{school.type}</Text>
@@ -201,7 +201,9 @@ function ReportCard({ item, onPress, isOverall }: { item: ExamResult; onPress: (
 export function StudentsExamResultsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const studentId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { user } = useAuth();
+  // Use param id if navigated from student list, otherwise use logged-in student's own id
+  const studentId = Array.isArray(params.id) ? params.id[0] : (params.id || user?.id);
   const vm = useStudentsExamResultsVM(studentId);
 
   const mockSchool: SchoolInfo = {
@@ -325,6 +327,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[200],
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
+  },
+  schoolLogoImg: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
     marginRight: 12,
   },
   schoolLogoText: {

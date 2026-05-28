@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Image,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -120,9 +121,7 @@ function PieChart({ data }: { data: { [key: string]: number } }) {
 function SchoolCard({ school }: { school: SchoolInfo }) {
   return (
     <View style={styles.schoolCard}>
-      <View style={styles.schoolLogo}>
-        <Text style={styles.schoolLogoText}>S</Text>
-      </View>
+      <Image source={require('../../../assets/icon.png')} style={styles.schoolLogoImg} />
       <View style={styles.schoolInfo}>
         <Text style={styles.schoolName}>{school.name} | ICSE/ISC</Text>
         <Text style={styles.schoolAddress}>{school.address}</Text>
@@ -300,6 +299,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary[200],
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 14,
+  },
+  schoolLogoImg: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
     marginRight: 14,
   },
   schoolLogoText: {

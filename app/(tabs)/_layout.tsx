@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { colors } from '../../src/theme/colors';
+import { useAuth } from '../../src/contexts/AuthContext';
 import {
   HomeTabIcon,
   StudentsTabIcon,
@@ -10,6 +11,9 @@ import {
 } from '../../src/components/icons/TabIcons';
 
 export default function TabLayout() {
+  const { user } = useAuth();
+  const isStudent = user?.role === 'student';
+
   return (
     <Tabs
       screenOptions={{
@@ -32,6 +36,7 @@ export default function TabLayout() {
         options={{
           title: 'Students',
           tabBarIcon: ({ color }) => <StudentsTabIcon color={color} />,
+          href: isStudent ? null : '/students',
         }}
       />
       <Tabs.Screen

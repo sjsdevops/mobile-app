@@ -359,9 +359,7 @@ function ScreenHeader({ onBack }: { onBack: () => void }) {
           <Text style={sharedStyles.headerTitle}>Attendance</Text>
           <Text style={sharedStyles.headerSub}>Today Class 8-B</Text>
         </View>
-        <TouchableOpacity style={sharedStyles.circleBtn}>
-          <MoreCircle color={colors.neutral[800]} size={20} variant="Linear" />
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
       </View>
       <View style={sharedStyles.divider} />
     </>
@@ -423,22 +421,44 @@ function StepMark({
       />
 
       {/* Bottom buttons */}
-      <View style={styles.bottomRow}>
-        <TouchableOpacity
-          style={styles.outlineBtn}
-          onPress={vm.markAllPresent}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.outlineBtnText}>All Present</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={vm.goToReview}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.primaryBtnText}>Review & Submit</Text>
-        </TouchableOpacity>
-      </View>
+      {!vm.canApproveAttendance && (
+        <View style={styles.bottomRow}>
+          <TouchableOpacity
+            style={styles.outlineBtn}
+            onPress={vm.markAllPresent}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.outlineBtnText}>All Present</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={vm.goToReview}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryBtnText}>Review & Submit</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {vm.canApproveAttendance && (
+        <View style={styles.approveSection}>
+          {vm.alreadyApproved ? (
+            <View style={[styles.primaryBtn, { backgroundColor: colors.green[200], flex: undefined, height: 52, opacity: 0.8 }]}>
+              <Text style={styles.primaryBtnText}>✓ Attendance Approved</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.primaryBtn, { backgroundColor: '#1fc16b', flex: undefined, height: 52 }]}
+              onPress={vm.approveAttendance}
+              disabled={vm.approving}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryBtnText}>
+                {vm.approving ? 'Approving...' : 'Approve Attendance'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -585,22 +605,6 @@ export function ClassAttendance() {
       {vm.step === 1 && <StepMark vm={vm} />}
       {vm.step === 2 && <StepReview vm={vm} />}
       {(vm.step === 3 || vm.step === 4) && <StepDone vm={vm} onDashboard={() => router.replace('/(tabs)')} onViewReport={() => router.push('/view-attendance')} />}
-
-      {/* Approve Attendance button — only for coordinator when attendance is marked */}
-      {vm.canApproveAttendance && vm.step === 1 && (
-        <View style={styles.approveSection}>
-          <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: '#1fc16b' }]}
-            onPress={vm.approveAttendance}
-            disabled={vm.approving}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>
-              {vm.approving ? 'Approving...' : 'Approve Attendance'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
     </SafeAreaView>
   );
 }
@@ -747,6 +751,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: colors.neutral[200],
+    backgroundColor: colors.surface.light,
   },
   submitBtn: {
     marginHorizontal: 16,

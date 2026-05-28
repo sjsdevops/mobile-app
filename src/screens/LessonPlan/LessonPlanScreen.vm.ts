@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
+import { api } from '../../services/api';
 import {
   getLessons,
   getAssignedSubjects,
@@ -13,27 +14,8 @@ import {
 import { getAllClasses, type ClassItem } from '../../services/classService';
 
 export type FilterTab = 'all' | 'pending' | 'completed';
-
-export type Chapter = {
-  id: string;
-  name: string;
-  status: 'completed' | 'inprogress' | 'notstarted';
-  completionPercentage: number;
-  startDate: string;
-  endDate: string;
-  topicCount: number;
-  lessonsCount: number;
-};
-
-export type SubjectProgress = {
-  id: string;
-  name: string;
-  completedLessons: number;
-  pendingLessons: number;
-  syllabusPercentage: number;
-  chapters: Chapter[];
-};
-
+export type Chapter = { id: string; name: string; status: 'completed' | 'inprogress' | 'notstarted'; completionPercentage: number; startDate: string; endDate: string; topicCount: number; lessonsCount: number };
+export type SubjectProgress = { id: string; name: string; completedLessons: number; pendingLessons: number; syllabusPercentage: number; chapters: Chapter[] };
 export type DropdownOption = { id: string; label: string };
 
 function mapStatus(status: string): 'completed' | 'inprogress' | 'notstarted' {
@@ -52,13 +34,13 @@ function formatDateRange(start: string | null, end: string | null): string {
 
 export function useLessonPlanVM() {
   const { user } = useAuth();
-  const [academicYear, setAcademicYear] = useState<string>('');
+  const [academicYear, setAcademicYear] = useState('');
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [assignedClasses, setAssignedClasses] = useState<AssignedClass[]>([]);
   const [allClassesData, setAllClassesData] = useState<ClassItem[]>([]);
-  const [selectedClass, setSelectedClass] = useState<string>('');
-  const [selectedSection, setSelectedSection] = useState<string>('');
-  const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSection, setSelectedSection] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('');
   const [filterTab, setFilterTab] = useState<FilterTab>('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,18 +52,65 @@ export function useLessonPlanVM() {
   // Fetch data on mount
   useEffect(() => {
     if (!user) return;
+    const isStudent = user.role === 'student';
+
     (async () => {
       try {
-        const [assignedData, yearsData, classesData] = await Promise.all([
-          getAssignedSubjects(user.id, user.id),
-          getAcademicYears(),
-          getAllClasses(user.id),
-        ]);
-        setAssignedClasses(assignedData.classes ?? []);
-        setAcademicYears(yearsData);
-        setAllClassesData(classesData);
-        if (yearsData.length > 0) setAcademicYear(yearsData[0].academic_year_id);
-        if (assignedData.classes?.length > 0) setSelectedClass(assignedData.classes[0].class_id);
+        if (isStudent) {
+          // Student: get profile for class/section, then get subjects, then fetch lessons
+          const profileResp = await api.get(`/mobile/student/${user.id}/profile`);
+          const profile = profileResp.data?.data ?? profileResp.data;
+          const classId = profile.academic_info?.class_id;
+          const sectionId = profile.academic_info?.section_id;
+          const className = profile.academic_info?.class_name ?? '';
+          const sectionName = profile.academic_info?.section_name ?? '';
+
+          if (classId && sectionId) {
+            setSelectedClass(classId);
+            setSelectedSection(sectionId);
+
+            // Get subjects for this class/section
+            const subjectsResp = await api.get(`/acadamics/users/${user.id}/subjects?class_id=${classId}`);
+            const subjectsData = subjectsResp.data?.data ?? subjectsResp.data;
+            const subjectItems = subjectsData?.items ?? subjectsData ?? [];
+            const sectionSubjects = subjectItems
+              .filter((s: any) => s.section?.section_id === sectionId)
+              .map((s: any) => ({
+                section_subject_id: s.section_subject_id,
+                subject_id: s.subject_id,
+                subject_name: s.subject_name,
+                subject_code: s.subject_code ?? '',
+                subject_type: s.subject_type ?? 'Core',
+              }));
+
+            setAssignedClasses([{
+              class_id: classId, class_name: className, class_type: '',
+              sections: [{ section_id: sectionId, section_name: sectionName, subjects: sectionSubjects }],
+            }]);
+            if (sectionSubjects.length > 0) setSelectedSubject(sectionSubjects[0].subject_id);
+
+            // Fetch lessons for this section
+            const lessonsResp = await api.get(`/mobile/lessons/class/${classId}/section/${sectionId}`);
+            const lessonsData = lessonsResp.data?.data ?? lessonsResp.data;
+            setLessons(lessonsData?.items ?? []);
+          }
+
+          const yearsData = await getAcademicYears();
+          setAcademicYears(yearsData);
+          if (yearsData.length > 0) setAcademicYear(yearsData[0].academic_year_id);
+        } else {
+          // Teacher/Coordinator
+          const [yearsData, classesData, assignedData] = await Promise.all([
+            getAcademicYears(),
+            getAllClasses(user.id),
+            getAssignedSubjects(user.id, user.id),
+          ]);
+          setAcademicYears(yearsData);
+          setAllClassesData(classesData);
+          setAssignedClasses(assignedData.classes ?? []);
+          if (yearsData.length > 0) setAcademicYear(yearsData[0].academic_year_id);
+          if (assignedData.classes?.length > 0) setSelectedClass(assignedData.classes[0].class_id);
+        }
       } catch (err) {
         console.error('[LessonPlan] Failed to fetch data:', err);
       }
@@ -89,16 +118,11 @@ export function useLessonPlanVM() {
   }, [user]);
 
   // Dropdown options
-  const classes: DropdownOption[] = useMemo(() =>
-    assignedClasses.map((c) => ({ id: c.class_id, label: c.class_name })),
-    [assignedClasses]
-  );
-
+  const classes: DropdownOption[] = useMemo(() => assignedClasses.map((c) => ({ id: c.class_id, label: c.class_name })), [assignedClasses]);
   const sections: DropdownOption[] = useMemo(() => {
     const cls = assignedClasses.find((c) => c.class_id === selectedClass);
     return (cls?.sections ?? []).map((s) => ({ id: s.section_id, label: s.section_name }));
   }, [assignedClasses, selectedClass]);
-
   const subjects: DropdownOption[] = useMemo(() => {
     const cls = assignedClasses.find((c) => c.class_id === selectedClass);
     const sec = cls?.sections.find((s) => s.section_id === selectedSection);
@@ -106,28 +130,18 @@ export function useLessonPlanVM() {
   }, [assignedClasses, selectedClass, selectedSection]);
 
   // Auto-select
-  useEffect(() => {
-    if (sections.length > 0 && !sections.find((s) => s.id === selectedSection))
-      setSelectedSection(sections[0].id);
-  }, [sections]);
+  useEffect(() => { if (sections.length > 0 && !sections.find((s) => s.id === selectedSection)) setSelectedSection(sections[0].id); }, [sections]);
+  useEffect(() => { if (subjects.length > 0 && !subjects.find((s) => s.id === selectedSubject)) setSelectedSubject(subjects[0].id); }, [subjects]);
 
-  useEffect(() => {
-    if (subjects.length > 0 && !subjects.find((s) => s.id === selectedSubject))
-      setSelectedSubject(subjects[0].id);
-  }, [subjects]);
-
-  // Fetch lessons
+  // Fetch lessons for teachers (students already loaded on mount)
   useEffect(() => {
     if (!selectedClass || !selectedSection || !selectedSubject || !user) return;
+    if (user.role === 'student') return;
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await getLessons({
-          classId: selectedClass,
-          sectionId: selectedSection,
-          subjectId: selectedSubject,
-        });
+        const data = await getLessons({ classId: selectedClass, sectionId: selectedSection, subjectId: selectedSubject });
         setLessons(data);
       } catch {
         setError('Failed to load lesson plans');
@@ -138,81 +152,56 @@ export function useLessonPlanVM() {
     })();
   }, [selectedClass, selectedSection, selectedSubject, user, refreshKey]);
 
-  // Check if logged-in user is class teacher for the selected section
-  const isClassTeacher = useMemo(() => {
-    if (!user || !selectedClass || !selectedSection) return false;
-    const cls = allClassesData.find((c) => c.class_id === selectedClass);
+  // Permission checks
+  const isSubjectTeacher = useMemo(() => {
+    if (!user || !selectedClass || !selectedSection || !selectedSubject) return false;
+    const cls = assignedClasses.find((c) => c.class_id === selectedClass);
     const sec = cls?.sections.find((s) => s.section_id === selectedSection);
-    if (!sec) return false;
-    return sec.class_teacher?.employee_id === user.id;
-  }, [user, selectedClass, selectedSection, allClassesData]);
+    return (sec?.subjects ?? []).some((s) => s.subject_id === selectedSubject);
+  }, [user, selectedClass, selectedSection, selectedSubject, assignedClasses]);
 
-  // Check if logged-in user is coordinator for the selected section
   const isCoordinator = useMemo(() => {
     if (!user || !selectedClass || !selectedSection) return false;
     const cls = allClassesData.find((c) => c.class_id === selectedClass);
     const sec = cls?.sections.find((s) => s.section_id === selectedSection);
-    if (!sec) return false;
-    return sec.coordinator?.employee_id === user.id;
+    return sec?.coordinator?.employee_id === user.id;
   }, [user, selectedClass, selectedSection, allClassesData]);
 
-  // Can add lesson: only if class teacher
-  const canAddLesson = isClassTeacher;
+  const canAddLesson = isSubjectTeacher && user?.role !== 'student';
+  const canApprove = isCoordinator && user?.role !== 'student';
+  const canComplete = isSubjectTeacher && user?.role !== 'student';
 
-  // Can approve: if coordinator
-  const canApprove = isCoordinator;
-
-  // Can complete: if class teacher
-  const canComplete = isClassTeacher;
-
-  // Approve a lesson (coordinator action)
   const approveLesson = useCallback(async (lessonId: string) => {
-    try {
-      await updateLesson(lessonId, { status: 'approved' });
-      Alert.alert('Success', 'Lesson plan approved');
-      refreshLessons();
-    } catch (err) {
-      console.error('[LessonPlan] Approve error:', err);
-      Alert.alert('Error', 'Failed to approve lesson plan');
-    }
+    try { await updateLesson(lessonId, { status: 'approved' }); Alert.alert('Success', 'Lesson plan approved'); refreshLessons(); }
+    catch { Alert.alert('Error', 'Failed to approve lesson plan'); }
   }, [refreshLessons]);
 
-  // Complete a lesson (class teacher action)
   const completeLesson = useCallback(async (lessonId: string) => {
-    try {
-      await updateLesson(lessonId, { status: 'completed' });
-      Alert.alert('Success', 'Lesson plan marked as completed');
-      refreshLessons();
-    } catch (err) {
-      console.error('[LessonPlan] Complete error:', err);
-      Alert.alert('Error', 'Failed to complete lesson plan');
-    }
+    try { await updateLesson(lessonId, { status: 'completed' }); Alert.alert('Success', 'Lesson plan completed'); refreshLessons(); }
+    catch { Alert.alert('Error', 'Failed to complete lesson plan'); }
   }, [refreshLessons]);
 
-  // Build subject progress
+  // Build subject progress from lessons filtered by selected subject
+  const filteredLessons = useMemo(() => {
+    if (!selectedSubject) return lessons;
+    return lessons.filter((l) => l.subject_id === selectedSubject);
+  }, [lessons, selectedSubject]);
+
   const subjectProgress: SubjectProgress | null = useMemo(() => {
-    if (lessons.length === 0) return null;
+    if (filteredLessons.length === 0) return null;
     const subjectName = subjects.find((s) => s.id === selectedSubject)?.label ?? 'Subject';
-    const completed = lessons.filter((l) => l.status === 'completed').length;
-    const pending = lessons.filter((l) => l.status !== 'completed').length;
-    const percentage = lessons.length > 0 ? Math.round((completed / lessons.length) * 100) : 0;
-
-    const chapters: Chapter[] = lessons.map((l, idx) => ({
-      id: l.lesson_id,
-      name: l.chapter_name || l.topic_name || `Lesson ${idx + 1}`,
-      status: mapStatus(l.status),
-      completionPercentage: l.status === 'completed' ? 100 : l.status === 'on_pending' ? 50 : 0,
-      startDate: formatDateRange(l.start_date, l.end_date),
-      endDate: l.end_date ?? '',
-      topicCount: 1,
-      lessonsCount: 1,
+    const completed = filteredLessons.filter((l) => l.status === 'completed').length;
+    const pending = filteredLessons.filter((l) => l.status !== 'completed').length;
+    const percentage = filteredLessons.length > 0 ? Math.round((completed / filteredLessons.length) * 100) : 0;
+    const chapters: Chapter[] = filteredLessons.map((l, idx) => ({
+      id: l.lesson_id, name: l.chapter_name || l.topic_name || `Lesson ${idx + 1}`,
+      status: mapStatus(l.status), completionPercentage: l.status === 'completed' ? 100 : l.status === 'on_pending' ? 50 : 0,
+      startDate: formatDateRange(l.start_date, l.end_date), endDate: l.end_date ?? '', topicCount: 1, lessonsCount: 1,
     }));
-
     return { id: selectedSubject, name: subjectName, completedLessons: completed, pendingLessons: pending, syllabusPercentage: percentage, chapters };
-  }, [lessons, selectedSubject, subjects]);
+  }, [filteredLessons, selectedSubject, subjects]);
 
-  const hasData = lessons.length > 0;
-
+  const hasData = filteredLessons.length > 0;
   const getFilteredChapters = () => {
     if (!subjectProgress) return [];
     return subjectProgress.chapters.filter((ch) => {
@@ -223,36 +212,12 @@ export function useLessonPlanVM() {
     });
   };
 
-  const academicYearOptions: DropdownOption[] = useMemo(() =>
-    academicYears.map((ay) => ({ id: ay.academic_year_id, label: ay.year })),
-    [academicYears]
-  );
+  const academicYearOptions: DropdownOption[] = useMemo(() => academicYears.map((ay) => ({ id: ay.academic_year_id, label: ay.year })), [academicYears]);
 
   return {
-    academicYear,
-    setAcademicYear,
-    academicYearOptions,
-    selectedClass,
-    setSelectedClass,
-    selectedSection,
-    setSelectedSection,
-    selectedSubject,
-    setSelectedSubject,
-    filterTab,
-    setFilterTab,
-    loading,
-    error,
-    hasData,
-    classes,
-    sections,
-    subjects,
-    subjectProgress,
-    getFilteredChapters,
-    refreshLessons,
-    canAddLesson,
-    canApprove,
-    canComplete,
-    approveLesson,
-    completeLesson,
+    academicYear, setAcademicYear, academicYearOptions,
+    selectedClass, setSelectedClass, selectedSection, setSelectedSection, selectedSubject, setSelectedSubject,
+    filterTab, setFilterTab, loading, error, hasData, classes, sections, subjects, subjectProgress, getFilteredChapters,
+    refreshLessons, canAddLesson, canApprove, canComplete, approveLesson, completeLesson,
   };
 }
