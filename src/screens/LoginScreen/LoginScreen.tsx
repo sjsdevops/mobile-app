@@ -143,11 +143,6 @@ export function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Forgot password */}
-          <Pressable style={styles.forgotContainer} onPress={() => { }}>
-            <Text style={styles.forgotText}>Forgot Password</Text>
-          </Pressable>
-
           {/* API error */}
           {vm.error ? (
             <View style={styles.errorBanner}>

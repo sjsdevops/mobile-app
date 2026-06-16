@@ -184,87 +184,37 @@ function HomeView({
   );
 }
 
-// ─── View: Confirm Location ───────────────────────────────────────────────────
+// ─── View: Outside Campus ────────────────────────────────────────────────────
 
-function ConfirmView({
-  vm,
-  onBack,
-}: {
-  vm: ReturnType<typeof useMyAttendanceVM>;
-  onBack: () => void;
-}) {
-  const userCoords = vm.coords
-    ? { latitude: vm.coords.lat, longitude: vm.coords.lng }
-    : { latitude: SCHOOL.latitude, longitude: SCHOOL.longitude };
-
+function OutsideCampusView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> }) {
   return (
-    <View style={styles.flex}>
-      {/* Header overlaid on map */}
-      <View style={styles.mapHeader}>
-        <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <View style={styles.mapBackBtn}>
-            <ArrowLeft color={colors.neutral[800]} size={20} variant="Linear" />
-          </View>
-        </TouchableOpacity>
-        <Text style={styles.mapHeaderText}>Confirm Location</Text>
-        <View style={{ width: 36 }} />
+    <View style={[styles.flex, styles.centeredView]}>
+      <View style={styles.outsideIconCircle}>
+        <LocationCross color={colors.secondary[300]} size={44} variant="Bold" />
       </View>
+      <Text style={styles.viewTitle}>Outside Campus</Text>
+      <Text style={styles.viewSubtitle}>{vm.outsideMessage || 'Your location could not be verified within the school campus area.'}</Text>
 
-      {/* Map full screen */}
-      <MapView
-        style={StyleSheet.absoluteFill}
-        initialRegion={{
-          latitude: SCHOOL.latitude,
-          longitude: SCHOOL.longitude,
-          latitudeDelta: 0.012,
-          longitudeDelta: 0.012,
-        }}
-        showsUserLocation={false}
-        showsMyLocationButton={false}
-      >
-        {/* Campus boundary */}
-        <Circle
-          center={{ latitude: SCHOOL.latitude, longitude: SCHOOL.longitude }}
-          radius={SCHOOL.radiusMeters}
-          fillColor="rgba(20, 79, 204, 0.12)"
-          strokeColor={colors.primary[300]}
-          strokeWidth={2}
-        />
-        {/* User / detected location pin */}
-        <Marker coordinate={userCoords} />
-      </MapView>
+      <View style={styles.flex} />
 
-      {/* Bottom card overlay */}
-      <View style={styles.mapCard}>
-        {/* Status row */}
-        <View style={styles.mapStatusRow}>
-          <LocationTick color={colors.green[200]} size={20} variant="Bold" />
-          <Text style={styles.mapStatusText}>Within School Campus</Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        {/* Location label */}
-        <View style={styles.mapInfoRow}>
-          <Location color={colors.neutral[400]} size={18} variant="Bold" />
-          <Text style={styles.mapInfoLabel}>Detected Location</Text>
-          <Text style={styles.mapInfoValue} numberOfLines={1}>{SCHOOL.name}</Text>
-        </View>
-
-        {/* Time label */}
-        <View style={styles.mapInfoRow}>
-          <Scan color={colors.neutral[400]} size={18} variant="Bold" />
-          <Text style={styles.mapInfoLabel}>Time</Text>
-          <Text style={styles.mapInfoValue}>{vm.clockStr}</Text>
-        </View>
-
+      <View style={styles.outsideBtnGroup}>
         <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={vm.onConfirmPunchIn}
+          style={[styles.primaryBtn, styles.flex]}
+          onPress={vm.onRetryLocation}
           activeOpacity={0.85}
+          disabled={vm.locLoading}
         >
-          <Scan color="#fff" size={18} variant="Bold" />
-          <Text style={styles.primaryBtnText}>{vm.confirmLabel}</Text>
+          {vm.locLoading
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <Refresh2 color="#fff" size={18} variant="Bold" />}
+          <Text style={styles.primaryBtnText}>Retry</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.ghostBtn}
+          onPress={vm.goHome}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.ghostBtnText}>Back to Home</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -309,54 +259,6 @@ function LateEntryView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> }) {
         <Scan color="#fff" size={18} variant="Bold" />
         <Text style={styles.primaryBtnText}>Acknowledge & Punch In</Text>
       </TouchableOpacity>
-    </View>
-  );
-}
-
-// ─── View: Outside Campus ─────────────────────────────────────────────────────
-
-function OutsideCampusView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> }) {
-  return (
-    <View style={[styles.flex, styles.centeredView]}>
-      {/* Icon */}
-      <View style={styles.outsideIconCircle}>
-        <LocationCross color={colors.secondary[300]} size={44} variant="Bold" />
-      </View>
-      <Text style={styles.viewTitle}>Outside Campus</Text>
-      <Text style={styles.viewSubtitle}>Your location could not be verified within the school campus area.</Text>
-
-      {/* Info card */}
-      <View style={styles.infoCard}>
-        <InfoRow label="Status" value="Not Verified" valueColor={colors.secondary[300]} />
-        <View style={styles.infoCardDivider} />
-        <InfoRow label="Distance from Campus" value={`${vm.distance} m`} />
-        <View style={styles.infoCardDivider} />
-        <InfoRow label="Required Radius" value={`${SCHOOL.radiusMeters} m`} />
-      </View>
-
-      <View style={styles.flex} />
-
-      <View style={styles.outsideBtnGroup}>
-        <TouchableOpacity
-          style={[styles.primaryBtn, styles.flex]}
-          onPress={vm.onRetryLocation}
-          activeOpacity={0.85}
-          disabled={vm.locLoading}
-        >
-          {vm.locLoading
-            ? <ActivityIndicator color="#fff" size="small" />
-            : <Refresh2 color="#fff" size={18} variant="Bold" />}
-          <Text style={styles.primaryBtnText}>Retry Location</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.ghostBtn}
-          onPress={vm.goHome}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.ghostBtnText}>Back to Home</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -444,24 +346,15 @@ export function MyAttendanceScreen() {
   const router = useRouter();
   const vm = useMyAttendanceVM();
 
-  const isMapView = vm.view === 'confirm';
-
   return (
     <SafeAreaView
-      style={[styles.safe, isMapView && { backgroundColor: '#000' }]}
+      style={styles.safe}
       edges={['top']}
     >
-      <StatusBar
-        barStyle={isMapView ? 'dark-content' : 'dark-content'}
-        backgroundColor={isMapView ? 'transparent' : colors.surface.light}
-        translucent={isMapView}
-      />
+      <StatusBar barStyle="dark-content" backgroundColor={colors.surface.light} />
 
       {vm.view === 'home' && (
         <HomeView vm={vm} onBack={() => router.back()} />
-      )}
-      {vm.view === 'confirm' && (
-        <ConfirmView vm={vm} onBack={vm.goHome} />
       )}
       {vm.view === 'late' && (
         <LateEntryView vm={vm} />

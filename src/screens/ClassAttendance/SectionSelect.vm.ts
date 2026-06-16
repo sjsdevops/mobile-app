@@ -25,8 +25,10 @@ export function useSectionSelectVM() {
 
                 for (const cls of classes) {
                     for (const section of cls.sections ?? []) {
-                        // Show sections where logged-in user is the class teacher
-                        if (section.class_teacher?.employee_id === user.id) {
+                        // Show sections where logged-in user is the class teacher OR coordinator
+                        const isTeacher = section.class_teacher?.employee_id === user.id;
+                        const isCoordinator = section.coordinator?.employee_id === user.id;
+                        if (isTeacher || isCoordinator) {
                             sections.push({
                                 classId: cls.class_id,
                                 className: cls.class_name,

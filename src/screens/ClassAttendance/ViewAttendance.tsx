@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   StatusBar,
@@ -11,12 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, DocumentDownload } from 'iconsax-react-nativejs';
 import { useRouter } from 'expo-router';
 import { colors } from '../../theme/colors';
-import {
-  LOW_ATTENDANCE,
-  REPORT_SUMMARY,
-  WEEKLY_DATA,
-} from './ViewAttendance.vm';
-import type { LowAttendanceStudent, WeekDay } from './ViewAttendance.vm';
+import { useViewAttendanceVM } from './ViewAttendance.vm';
+import type { WeekDay } from './ViewAttendance.vm';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -43,29 +40,28 @@ function StatCard({
 
 function BarGroup({ item }: { item: WeekDay }) {
   const presentH = Math.round((item.present / 100) * CHART_MAX_HEIGHT);
-  const absentH  = Math.round((item.absent  / 100) * CHART_MAX_HEIGHT);
+  const absentH = Math.round((item.absent / 100) * CHART_MAX_HEIGHT);
 
   return (
     <View style={chartStyles.group}>
       {/* Bars aligned to bottom */}
       <View style={chartStyles.barsRow}>
         <View style={[chartStyles.bar, chartStyles.barPresent, { height: presentH }]} />
-        <View style={[chartStyles.bar, chartStyles.barAbsent,  { height: absentH  }]} />
+        <View style={[chartStyles.bar, chartStyles.barAbsent, { height: absentH }]} />
       </View>
       <Text style={chartStyles.dayLabel}>{item.day}</Text>
     </View>
   );
 }
 
-function WeeklyChart() {
+function WeeklyChart({ data }: { data: WeekDay[] }) {
   return (
     <View style={styles.chartCard}>
       <Text style={styles.sectionTitle}>Weekly Overview</Text>
       <View style={styles.chartDivider} />
-      <Text style={styles.weekLabel}>{REPORT_SUMMARY.weekLabel}</Text>
 
       <View style={chartStyles.canvas}>
-        {WEEKLY_DATA.map((d) => (
+        {data.map((d) => (
           <BarGroup key={d.day} item={d} />
         ))}
       </View>
@@ -112,6 +108,18 @@ function AttentionRow({ student }: { student: LowAttendanceStudent }) {
 
 export function ViewAttendance() {
   const router = useRouter();
+  const vm = useViewAttendanceVM();
+
+  if (vm.loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.surface.light} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator size="large" color={colors.primary[300]} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -129,7 +137,7 @@ export function ViewAttendance() {
 
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Attendance Report</Text>
-          <Text style={styles.headerSub}>{REPORT_SUMMARY.className}</Text>
+          <Text style={styles.headerSub}>{vm.reportSummary.weekLabel}</Text>
         </View>
 
         <TouchableOpacity style={styles.circleBtn} activeOpacity={0.7}>
@@ -146,24 +154,40 @@ export function ViewAttendance() {
         {/* ── Top stat cards ── */}
         <View style={styles.statsRow}>
           <StatCard
-            value={`${REPORT_SUMMARY.averageAttendance}%`}
-            label="Average Attendance"
+            value={`${Math.round(vm.reportSummary.averageAttendance)}%`}
+            label="Attendance"
           />
           <StatCard
-            value={`${REPORT_SUMMARY.absentToday}%`}
-            label="Absent Today"
+            value={`${vm.reportSummary.totalPresent}/${vm.reportSummary.totalDays}`}
+            label="Present / Total"
           />
         </View>
 
         {/* ── Weekly Overview bar chart ── */}
-        <WeeklyChart />
+        <WeeklyChart data={vm.weeklyData} />
 
-        {/* ── Need Attention ── */}
-        <Text style={styles.needAttentionTitle}>Need Attention</Text>
+        {/* ── Recent Records ── */}
+        <Text style={styles.needAttentionTitle}>Recent Records</Text>
 
         <View style={styles.attentionList}>
-          {LOW_ATTENDANCE.map((s) => (
-            <AttentionRow key={s.id} student={s} />
+          {vm.recentRecords.slice(0, 10).map((record) => (
+            <View key={record.attendance_id || record.date} style={styles.attentionRow}>
+              <View style={[styles.avatar, { backgroundColor: record.is_present ? colors.green.alpha : colors.secondary.alpha }]}>
+                <Text style={[styles.avatarText, { color: record.is_present ? colors.green[200] : colors.secondary[300] }]}>
+                  {record.is_present ? '✓' : '✗'}
+                </Text>
+              </View>
+              <View style={styles.attentionInfo}>
+                <View style={styles.attentionNameRow}>
+                  <Text style={styles.attentionName}>
+                    {new Date(record.date).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' })}
+                  </Text>
+                  <Text style={[styles.attentionPct, { color: record.is_present ? colors.green[200] : colors.secondary[300] }]}>
+                    {record.is_present ? 'Present' : 'Absent'}
+                  </Text>
+                </View>
+              </View>
+            </View>
           ))}
         </View>
       </ScrollView>

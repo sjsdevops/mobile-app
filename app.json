@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "school-erp-mobile-app",
+    "name": "Jayam 360",
     "slug": "school-erp-mobile-app",
     "version": "1.0.0",
     "scheme": "schoolerp",
@@ -24,6 +24,7 @@
       },
       "edgeToEdgeEnabled": false,
       "package": "com.sreejayam.schoolerp",
+      "versionCode": 1,
       "usesCleartextTraffic": true,
       "config": {
         "googleMaps": {
@@ -37,7 +38,15 @@
     "plugins": [
       "expo-router",
       "@react-native-community/datetimepicker",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "extra": {
       "router": {},
