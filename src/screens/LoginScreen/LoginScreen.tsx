@@ -205,14 +205,14 @@ const styles = StyleSheet.create({
   // Title
   title: {
     marginTop: 24,
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.neutral[900],
     textAlign: 'center',
   },
   subtitle: {
     marginTop: 4,
-    fontSize: 14,
+    fontSize: 12,
     color: colors.neutral[500],
     textAlign: 'center',
   },
