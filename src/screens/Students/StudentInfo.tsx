@@ -12,7 +12,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { CaseStudyCard } from '../../components/ui/CaseStudyCard';
 import { useStudentInfoVM } from './StudentInfo.vm';
+import { useStudentCaseStudiesVM } from '../CaseStudy/CaseStudy.vm';
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
@@ -48,6 +50,7 @@ export function StudentInfoScreen() {
   const params = useLocalSearchParams();
   const studentId = Array.isArray(params.id) ? params.id[0] : params.id;
   const vm = useStudentInfoVM(studentId);
+  const caseVm = useStudentCaseStudiesVM(studentId);
   const [activeTab, setActiveTab] = useState('profile');
 
   if (vm.loading) {
@@ -122,9 +125,23 @@ export function StudentInfoScreen() {
         )}
 
         {activeTab === 'case' && (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>Student case study will be available soon.</Text>
-          </View>
+          caseVm.loading ? (
+            <View style={styles.emptyCard}>
+              <ActivityIndicator size="large" color={colors.primary[300]} />
+            </View>
+          ) : caseVm.caseStudies.length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>
+                {caseVm.error ?? 'No case studies found.'}
+              </Text>
+            </View>
+          ) : (
+            <View>
+              {caseVm.caseStudies.map((cs) => (
+                <CaseStudyCard key={cs.case_study_id} item={cs} expanded />
+              ))}
+            </View>
+          )
         )}
       </ScrollView>
     </SafeAreaView>

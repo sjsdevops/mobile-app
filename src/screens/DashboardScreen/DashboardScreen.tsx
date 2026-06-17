@@ -1,4 +1,5 @@
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   ScrollView,
@@ -30,7 +31,9 @@ import { colors } from '../../theme/colors';
 import { useThemeColors } from '../../theme/ThemeContext';
 import { useDashboardVM, type AssignedClassCard } from './DashboardScreen.vm';
 import { AppTour, type TourStep } from '../../components/ui/AppTour';
+import { CaseStudyCard } from '../../components/ui/CaseStudyCard';
 import { useAuth } from '../../contexts/AuthContext';
+import { useStudentCaseStudiesVM } from '../CaseStudy/CaseStudy.vm';
 
 type IconComponent = FC<IconProps>;
 
@@ -353,6 +356,7 @@ export function StudentDashboardScreen() {
   const router = useRouter();
   const themeColors = useThemeColors();
   const { user } = useAuth();
+  const caseVm = useStudentCaseStudiesVM(user?.id);
 
   const nextClass = useMemo(() => {
     return getNextClass();
@@ -416,6 +420,23 @@ export function StudentDashboardScreen() {
           </View>
         </View> */}
 
+        {/* ── Student Case Study ── */}
+        {(caseVm.loading || caseVm.caseStudies.length > 0) && (
+          <>
+            <SectionTitle title="Student Case Study" />
+            {caseVm.loading ? (
+              <View style={styles.caseLoading}>
+                <ActivityIndicator color={themeColors.primary[300]} />
+              </View>
+            ) : (
+              <CaseStudyCard
+                item={caseVm.caseStudies[0]}
+                onViewDetails={() => router.push('/case-study')}
+              />
+            )}
+          </>
+        )}
+
         <SectionTitle title="Class Management" />
         <View style={styles.grid}>
           {CLASS_MANAGEMENT_ITEMS.map((item) => (
@@ -431,7 +452,8 @@ export function StudentDashboardScreen() {
                     item.id === 'attendance' ? () => router.push('/view-attendance') :
                       item.id === 'homework' ? () => router.push('/homework') :
                         item.id === 'exams' ? () => router.push('/student-exam-results') :
-                          undefined
+                          item.id === 'case' ? () => router.push('/case-study') :
+                            undefined
               }
             />
           ))}
@@ -486,6 +508,12 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 4,
+  },
+
+  caseLoading: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Greeting

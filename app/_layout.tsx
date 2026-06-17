@@ -20,6 +20,7 @@ export default function RootLayout() {
             <Stack.Screen name="my-attendance" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="attendance-history" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="student-info" options={{ headerShown: false, animation: 'slide_from_right' }} />
+            <Stack.Screen name="case-study" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="student-exam-results" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="student-exam-results/[sectionId]" options={{ headerShown: false, animation: 'slide_from_right' }} />
             <Stack.Screen name="edit-profile" options={{ headerShown: false, animation: 'slide_from_right' }} />
