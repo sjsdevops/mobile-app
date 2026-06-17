@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 import * as Location from 'expo-location';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';

@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { colors } from '../../theme/colors';
+import { useThemeColors } from '../../theme/ThemeContext';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { ExamSection, ExamResult, useStudentsExamResultsVM } from './StudentsExamResults.vm';
@@ -30,26 +31,17 @@ interface StudentInfo {
 }
 
 function CircularProgress({ percentage, label }: { percentage: number; label: string }) {
+  const themeColors = useThemeColors();
   const circumference = 2 * Math.PI * 45;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
     <View style={styles.progressContainer}>
       <Svg width={120} height={120} viewBox="0 0 120 120">
+        <Circle cx="60" cy="60" r="45" fill="none" stroke={colors.neutral[200]} strokeWidth="8" />
         <Circle
-          cx="60"
-          cy="60"
-          r="45"
-          fill="none"
-          stroke={colors.neutral[200]}
-          strokeWidth="8"
-        />
-        <Circle
-          cx="60"
-          cy="60"
-          r="45"
-          fill="none"
-          stroke={colors.primary[300]}
+          cx="60" cy="60" r="45" fill="none"
+          stroke={themeColors.primary[300]}
           strokeWidth="8"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
@@ -66,10 +58,11 @@ function CircularProgress({ percentage, label }: { percentage: number; label: st
 }
 
 function PieChart({ data }: { data: { [key: string]: number } }) {
+  const themeColors = useThemeColors();
   const colors_array = [
-    colors.primary[300],
-    colors.primary[500],
-    colors.primary[400],
+    themeColors.primary[300],
+    themeColors.primary[500],
+    themeColors.primary[400],
     colors.neutral[500],
     colors.neutral[400],
   ];
@@ -202,9 +195,22 @@ export function StudentsExamResultsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user } = useAuth();
-  // Use param id if navigated from student list, otherwise use logged-in student's own id
+  const themeColors = useThemeColors();
   const studentId = Array.isArray(params.id) ? params.id[0] : (params.id || user?.id);
   const vm = useStudentsExamResultsVM(studentId);
+
+  const dynStyles = {
+    reportCard: { borderColor: themeColors.primary[300] },
+    overallReportCard: { backgroundColor: themeColors.primary[300], borderColor: themeColors.primary[300] },
+    overallBadgeText: { color: themeColors.primary[300] },
+    viewAllText: { color: themeColors.primary[300] },
+    schoolName: { color: themeColors.primary[500] },
+    schoolLogoText: { color: themeColors.primary[500] },
+    examTabActive: { backgroundColor: themeColors.primary[300], borderColor: themeColors.primary[300] },
+    tableHeader: { backgroundColor: themeColors.primary[300] },
+    totalGradeBadge: { backgroundColor: themeColors.primary[300] },
+    submitButton: { backgroundColor: themeColors.primary[300] },
+  };
 
   const mockSchool: SchoolInfo = {
     name: 'Sree Jayam School',
@@ -252,39 +258,46 @@ export function StudentsExamResultsScreen() {
 
         {vm.examSections.map((section) => (
           <View key={section.id} style={styles.sectionBlock}>
-            <SectionHeader
-              title={section.title}
-              onView={() =>
-                router.push({
-                  pathname: `/student-exam-results/${section.id}`,
-                  params: { id: studentId },
-                })
-              }
-            />
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionHeading}>{section.title}</Text>
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: `/student-exam-results/${section.id}`, params: { id: studentId } })}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.viewAllText, dynStyles.viewAllText]}>View Overall Reports</Text>
+              </TouchableOpacity>
+            </View>
 
             {section.tests.map((test) => (
-              <ReportCard
+              <TouchableOpacity
                 key={test.id}
-                item={test}
-                onPress={() =>
-                  router.push({
-                    pathname: `/student-exam-results/${section.id}`,
-                    params: { id: studentId },
-                  })
-                }
-              />
+                style={[styles.reportCard, dynStyles.reportCard]}
+                onPress={() => router.push({ pathname: `/student-exam-results/${section.id}`, params: { id: studentId } })}
+                activeOpacity={0.85}
+              >
+                <View>
+                  <Text style={styles.reportCardTitle}>{test.title}</Text>
+                  <Text style={styles.reportCardSubtitle}>{test.subtitle}</Text>
+                </View>
+                <View style={[styles.reportBadge, styles.scoreBadge]}>
+                  <Text style={styles.reportBadgeText}>{test.scoreLabel}</Text>
+                </View>
+              </TouchableOpacity>
             ))}
 
-            <ReportCard
-              item={section.overall}
-              onPress={() =>
-                router.push({
-                  pathname: `/student-exam-results/${section.id}`,
-                  params: { id: studentId },
-                })
-              }
-              isOverall
-            />
+            <TouchableOpacity
+              style={[styles.reportCard, styles.overallReportCard, dynStyles.overallReportCard]}
+              onPress={() => router.push({ pathname: `/student-exam-results/${section.id}`, params: { id: studentId } })}
+              activeOpacity={0.85}
+            >
+              <View>
+                <Text style={[styles.reportCardTitle, { color: colors.neutral[100] }]}>{section.overall.title}</Text>
+                <Text style={[styles.reportCardSubtitle, { color: 'rgba(255,255,255,0.75)' }]}>{section.overall.subtitle}</Text>
+              </View>
+              <View style={[styles.reportBadge, styles.overallBadge]}>
+                <Text style={[styles.reportBadgeText, dynStyles.overallBadgeText]}>{section.overall.scoreLabel}</Text>
+              </View>
+            </TouchableOpacity>
           </View>
         ))}
       </ScrollView>

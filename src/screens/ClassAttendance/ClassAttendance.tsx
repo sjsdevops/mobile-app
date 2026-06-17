@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   FlatList,
   ScrollView,
@@ -7,12 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
   Calendar1,
   InfoCircle,
-  MoreCircle,
   TickCircle,
 } from 'iconsax-react-nativejs';
 import { useRouter } from 'expo-router';
@@ -46,11 +46,10 @@ function StepIndicator({ current }: { current: AttendanceStep }) {
           const lineDone = idx === 0 ? line1Done : line2Done;
 
           return (
-            <>
+            <React.Fragment key={s.num}>
               {/* Connector line BEFORE steps 2 and 3 */}
               {idx > 0 && (
                 <View
-                  key={`line-${s.num}`}
                   style={[
                     stepStyles.line,
                     lineDone && stepStyles.lineDone,
@@ -58,7 +57,7 @@ function StepIndicator({ current }: { current: AttendanceStep }) {
                 />
               )}
 
-              <View key={s.num} style={stepStyles.stepCol}>
+              <View style={stepStyles.stepCol}>
                 <View
                   style={[
                     stepStyles.circle,
@@ -89,7 +88,7 @@ function StepIndicator({ current }: { current: AttendanceStep }) {
                   {label}
                 </Text>
               </View>
-            </>
+            </React.Fragment>
           );
         })}
       </View>
@@ -126,7 +125,7 @@ const stepStyles = StyleSheet.create({
   stepCol: {
     alignItems: 'center',
     gap: 6,
-    width: CIRCLE_SIZE,
+    minWidth: CIRCLE_SIZE,
   },
   circle: {
     width: CIRCLE_SIZE,
@@ -154,6 +153,7 @@ const stepStyles = StyleSheet.create({
     fontSize: 12,
     color: colors.neutral[500],
     fontWeight: '500',
+    textAlign: 'center',
   },
   labelDone: {
     color: colors.green[200],
@@ -407,22 +407,25 @@ function StepMark({
 }: {
   vm: ReturnType<typeof useAttendanceVM>;
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={styles.flex}>
-      <FlatList
-        data={vm.students}
-        keyExtractor={(s) => s.id}
-        renderItem={({ item }) => (
-          <StudentRow student={item} onMark={vm.mark} />
-        )}
-        style={styles.studentList}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.studentListContent}
-      />
+      <View style={styles.flex}>
+        <FlatList
+          data={vm.students}
+          keyExtractor={(s) => s.id}
+          renderItem={({ item }) => (
+            <StudentRow student={item} onMark={vm.mark} />
+          )}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.studentListContent}
+        />
+      </View>
 
       {/* Bottom buttons */}
       {!vm.canApproveAttendance && (
-        <View style={styles.bottomRow}>
+        <View style={[styles.bottomRow, { paddingBottom: insets.bottom + 12 }]}>
           <TouchableOpacity
             style={styles.outlineBtn}
             onPress={vm.markAllPresent}
@@ -430,24 +433,34 @@ function StepMark({
           >
             <Text style={styles.outlineBtnText}>All Present</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={vm.goToReview}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>Review & Submit</Text>
-          </TouchableOpacity>
+
+          {/* For teacher role: disable until all students are marked */}
+          {(() => {
+            const disabled = vm.isTeacher && vm.allStudentsMarked;
+            return (
+              <TouchableOpacity
+                style={[styles.primaryBtn, disabled && styles.primaryBtnDisabled, disabled && { height: 60 }]}
+                onPress={disabled ? undefined : vm.goToReview}
+                activeOpacity={disabled ? 1 : 0.85}
+                disabled={disabled}
+              >
+                <Text style={styles.primaryBtnText}>Review & Submit</Text>
+              </TouchableOpacity>
+            );
+          })()}
         </View>
       )}
       {vm.canApproveAttendance && (
-        <View style={styles.approveSection}>
+        <View style={[styles.approveSection, { paddingBottom: insets.bottom + 12 }]}>
           {vm.alreadyApproved ? (
-            <View style={[styles.primaryBtn, { backgroundColor: colors.green[200], flex: undefined, height: 52, opacity: 0.8 }]}>
+            // All approved, nothing edited — static approved state
+            <View style={[styles.approveBtn, { backgroundColor: colors.green[200] }]}>
               <Text style={styles.primaryBtnText}>✓ Attendance Approved</Text>
             </View>
           ) : (
+            // Either first approval or coordinator edited after approving
             <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: '#1fc16b', flex: undefined, height: 52 }]}
+              style={[styles.approveBtn, { backgroundColor: '#1fc16b' }]}
               onPress={vm.approveAttendance}
               disabled={vm.approving}
               activeOpacity={0.85}
@@ -470,8 +483,14 @@ function StepReview({
 }: {
   vm: ReturnType<typeof useAttendanceVM>;
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <ScrollView style={styles.flex} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={styles.flex}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+    >
       {/* Stats */}
       <View style={styles.statsRow}>
         <StatCard value={vm.totalCount} label="Total" />
@@ -517,8 +536,6 @@ function StepReview({
       >
         <Text style={styles.primaryBtnText}>Submit Attendance</Text>
       </TouchableOpacity>
-
-      <View style={{ height: 32 }} />
     </ScrollView>
   );
 }
@@ -534,10 +551,12 @@ function StepDone({
   onDashboard: () => void;
   onViewReport: () => void;
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
     <ScrollView
       style={styles.flex}
-      contentContainerStyle={styles.doneContent}
+      contentContainerStyle={[styles.doneContent, { paddingBottom: insets.bottom + 16 }]}
       showsVerticalScrollIndicator={false}
     >
       {/* Calendar + tick icon */}
@@ -634,7 +653,6 @@ const styles = StyleSheet.create({
   },
 
   // Student list
-  studentList: { flex: 1 },
   studentListContent: {
     backgroundColor: colors.neutral[100],
     marginHorizontal: 16,
@@ -741,10 +759,21 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
+  primaryBtnDisabled: {
+    backgroundColor: colors.neutral[400],
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   primaryBtnText: {
     fontSize: 15,
     fontWeight: '700',
     color: colors.neutral[100],
+  },
+  primaryBtnSubText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: colors.neutral[200],
+    marginTop: 2,
   },
   approveSection: {
     paddingHorizontal: 16,
@@ -752,6 +781,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.neutral[200],
     backgroundColor: colors.surface.light,
+  },
+  approveBtn: {
+    height: 52,
+    borderRadius: 14,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.primary[400],
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   submitBtn: {
     marginHorizontal: 16,
@@ -791,3 +832,4 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
 });
+

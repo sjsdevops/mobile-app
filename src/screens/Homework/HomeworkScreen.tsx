@@ -74,7 +74,7 @@ export function HomeworkScreen() {
                 <ModalDropdown label="Subject" value={vm.selectedSubject} options={vm.subjects} onSelect={vm.setSelectedSubject} />
 
                 {/* Filter chips */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipRow}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipRow} contentContainerStyle={{ alignItems: 'center', paddingVertical: 4 }}>
                     {FILTERS.map((f) => (
                         <TouchableOpacity key={f.key} style={[s.chip, vm.filterTab === f.key && s.chipActive]} onPress={() => vm.setFilterTab(f.key)}>
                             <Text style={[s.chipText, vm.filterTab === f.key && s.chipTextActive]}>{f.label}</Text>

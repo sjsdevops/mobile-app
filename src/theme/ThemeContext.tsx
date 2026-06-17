@@ -15,17 +15,17 @@ const COORDINATOR_PRIMARY = {
     alpha: 'rgba(79, 32, 182, 0.10)',
 };
 
-// Student primary color: #00E35A
+// Student primary color: #009C3E
 const STUDENT_PRIMARY = {
-    DEFAULT: '#00E35A',
-    10: '#F0FFF6',
-    50: 'rgba(0, 227, 90, 0.10)',
-    100: '#99f5c2',
-    200: '#33eb85',
-    300: '#00E35A',
-    400: '#00b347',
-    500: '#008033',
-    alpha: 'rgba(0, 227, 90, 0.10)',
+    DEFAULT: '#009C3E',
+    10: '#F0F8FC',
+    50: 'rgba(0, 147, 206, 0.10)',
+    100: '#99d6f0',
+    200: '#33aedd',
+    300: '#009C3E',
+    400: '#0075a5',
+    500: '#005478',
+    alpha: 'rgba(0, 147, 206, 0.10)',
 };
 
 type ColorsType = typeof baseColors;

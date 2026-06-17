@@ -63,6 +63,7 @@ export function useAttendanceVM() {
   const [isCoordinator, setIsCoordinator] = useState(false);
   const [isClassTeacher, setIsClassTeacher] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
 
   // Check if user is coordinator for this section
   useEffect(() => {
@@ -106,9 +107,16 @@ export function useAttendanceVM() {
               attendanceMap.set(item.student_id, item);
             }
             setAttendanceMarked(true);
-            // Check if all are already approved
-            const allApproved = attendanceData.items.every((item: any) => item.is_approved === true);
+            // Check if all are already approved — guard against empty array
+            // and missing is_approved field (treat undefined as not approved)
+            const allApproved =
+              attendanceData.items.length > 0 &&
+              attendanceData.items.every((item: any) => item.is_approved === true);
             setAlreadyApproved(allApproved);
+            // If not yet approved, coordinator needs to approve — treat as having edits
+            if (!allApproved) {
+              setHasUnsavedEdits(true);
+            }
           }
         } catch {
           // Not yet marked
@@ -151,8 +159,24 @@ export function useAttendanceVM() {
   const presentStudents = useMemo(() => students.filter((s) => s.status === 'present'), [students]);
   const absentStudents = useMemo(() => students.filter((s) => s.status === 'absent'), [students]);
 
+  // True when every student has been explicitly marked (no 'not_marked' remaining)
+  const allStudentsMarked = useMemo(
+    () => students.length > 0 && students.every((s) => s.status !== 'not_marked'),
+    [students],
+  );
+
+  // Teacher role: class teacher who is NOT a coordinator
+  const isTeacher = isClassTeacher && !isCoordinator;
+
   function mark(id: string, status: AttendanceStatus) {
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
+    // If coordinator edits after approving, reset approval state so they can re-approve
+    if (isCoordinator && alreadyApproved) {
+      setAlreadyApproved(false);
+    }
+    if (isCoordinator) {
+      setHasUnsavedEdits(true);
+    }
   }
 
   function markAllPresent() {
@@ -193,9 +217,14 @@ export function useAttendanceVM() {
 
   async function approveAttendance() {
     if (!user || !classId || !sectionId) return;
+    if (!hasUnsavedEdits) return; // block if nothing was edited
     setApproving(true);
     try {
       const markedStudents = students.filter((s) => s.status !== 'not_marked');
+      if (markedStudents.length === 0) {
+        Alert.alert('No attendance to approve', 'There are no marked students to approve.');
+        return;
+      }
       await approveStudentAttendance({
         class_id: classId,
         section_id: sectionId,
@@ -206,10 +235,13 @@ export function useAttendanceVM() {
         })),
         modified_by: user.id,
       });
+      setAlreadyApproved(true);
+      setHasUnsavedEdits(false);
       Alert.alert('Success', 'Attendance approved successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Attendance] Approve failed:', error);
-      Alert.alert('Error', 'Failed to approve attendance');
+      const msg = error?.response?.data?.detail || error?.message || 'Failed to approve attendance';
+      Alert.alert('Error', msg);
     } finally {
       setApproving(false);
     }
@@ -237,5 +269,8 @@ export function useAttendanceVM() {
     approving,
     attendanceMarked,
     alreadyApproved,
+    allStudentsMarked,
+    isTeacher,
+    hasUnsavedEdits,
   };
 }

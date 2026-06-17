@@ -367,6 +367,9 @@ function StudentMarkRow({
 function EnterMarks({ vm }: { vm: ReturnType<typeof useExamVM> }) {
   const exam = vm.selectedExam!;
 
+  // Teacher (non-coordinator) viewing a submitted or verified exam — readonly, no submit button
+  const isReadonlyForTeacher = !vm.isCoordinatorForSection && (exam.status === 'submitted' || exam.status === 'verified');
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface.light} />
@@ -427,6 +430,7 @@ function EnterMarks({ vm }: { vm: ReturnType<typeof useExamVM> }) {
               mark={vm.marks[item.id] ?? ''}
               comment={vm.comments[item.id] ?? ''}
               maxMarks={exam.maxMarks}
+              readonly={isReadonlyForTeacher}
               onChangeMark={(v) => vm.setMark(item.id, v)}
               onChangeComment={(v) => vm.setComment(item.id, v)}
             />
@@ -439,27 +443,29 @@ function EnterMarks({ vm }: { vm: ReturnType<typeof useExamVM> }) {
         />
       </KeyboardAvoidingView>
 
-      {/* Bottom buttons */}
-      <View style={styles.bottomRow}>
-        {vm.canApproveMarks ? (
-          <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: '#1fc16b' }]}
-            onPress={vm.approveMarks}
-            activeOpacity={0.85}
-            disabled={vm.submitting}
-          >
-            <Text style={styles.primaryBtnText}>{vm.submitting ? 'Approving...' : 'Approve Marks'}</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={vm.goToPreview}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.primaryBtnText}>Review & Submit</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* Bottom buttons — hidden for teacher viewing a submitted exam */}
+      {!isReadonlyForTeacher && (
+        <View style={styles.bottomRow}>
+          {vm.canApproveMarks ? (
+            <TouchableOpacity
+              style={[styles.primaryBtn, { backgroundColor: '#1fc16b' }]}
+              onPress={vm.approveMarks}
+              activeOpacity={0.85}
+              disabled={vm.submitting}
+            >
+              <Text style={styles.primaryBtnText}>{vm.submitting ? 'Approving...' : 'Approve Marks'}</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={vm.goToPreview}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryBtnText}>Review & Submit</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </SafeAreaView>
   );
 }

@@ -107,9 +107,67 @@ export function useLessonPlanVM() {
           ]);
           setAcademicYears(yearsData);
           setAllClassesData(classesData);
-          setAssignedClasses(assignedData.classes ?? []);
           if (yearsData.length > 0) setAcademicYear(yearsData[0].academic_year_id);
-          if (assignedData.classes?.length > 0) setSelectedClass(assignedData.classes[0].class_id);
+
+          const isCoordinatorRole = user.role?.toLowerCase().includes('coordinator') ||
+            user.role?.toLowerCase().includes('oridinator');
+
+          if (isCoordinatorRole) {
+            // For coordinator: filter all classes down to sections where they are the coordinator,
+            // then fetch subjects for each of those sections.
+            const coordinatorClasses: AssignedClass[] = [];
+
+            for (const cls of classesData) {
+              const coordinatorSections = cls.sections.filter(
+                (sec) => sec.coordinator?.employee_id === user.id
+              );
+              if (coordinatorSections.length === 0) continue;
+
+              // Fetch subjects for this class
+              let subjectItems: any[] = [];
+              try {
+                const subjectsResp = await api.get(
+                  `/acadamics/users/${user.id}/subjects?class_id=${cls.class_id}`
+                );
+                const subjectsData = subjectsResp.data?.data ?? subjectsResp.data;
+                subjectItems = subjectsData?.items ?? subjectsData ?? [];
+              } catch {
+                // subjects fetch failed for this class — continue with empty subjects
+              }
+
+              const sections = coordinatorSections.map((sec) => {
+                const sectionSubjects = subjectItems
+                  .filter((s: any) => s.section?.section_id === sec.section_id)
+                  .map((s: any) => ({
+                    section_subject_id: s.section_subject_id,
+                    subject_id: s.subject_id,
+                    subject_name: s.subject_name,
+                    subject_code: s.subject_code ?? '',
+                    subject_type: s.subject_type ?? 'Core',
+                  }));
+
+                return {
+                  section_id: sec.section_id,
+                  section_name: sec.section_name,
+                  subjects: sectionSubjects,
+                };
+              });
+
+              coordinatorClasses.push({
+                class_id: cls.class_id,
+                class_name: cls.class_name,
+                class_type: cls.class_type,
+                sections,
+              });
+            }
+
+            setAssignedClasses(coordinatorClasses);
+            if (coordinatorClasses.length > 0) setSelectedClass(coordinatorClasses[0].class_id);
+          } else {
+            // Teacher: use assigned subjects API as before
+            setAssignedClasses(assignedData.classes ?? []);
+            if (assignedData.classes?.length > 0) setSelectedClass(assignedData.classes[0].class_id);
+          }
         }
       } catch (err) {
         console.error('[LessonPlan] Failed to fetch data:', err);

@@ -20,6 +20,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from 'expo-router';
 import { colors } from '../../theme/colors';
+import { useThemeColors } from '../../theme/ThemeContext';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { useMyProfileVM } from './MyProfile.vm';
 import { useAuth } from '../../contexts/AuthContext';
@@ -38,15 +39,17 @@ function SettingRow({
   subtitle,
   icon,
   onPress,
+  iconBg,
 }: {
   title: string;
   subtitle: string;
   icon: React.ReactNode;
   onPress: () => void;
+  iconBg?: string;
 }) {
   return (
     <TouchableOpacity style={styles.settingRow} onPress={onPress} activeOpacity={0.75}>
-      <View style={styles.settingIcon}>{icon}</View>
+      <View style={[styles.settingIcon, iconBg ? { backgroundColor: iconBg } : undefined]}>{icon}</View>
       <View style={styles.settingText}>
         <Text style={styles.settingTitle}>{title}</Text>
         <Text style={styles.settingSubtitle}>{subtitle}</Text>
@@ -60,6 +63,7 @@ export function ProfileScreen() {
   const router = useRouter();
   const { profile, settings, loading, refreshProfile } = useMyProfileVM();
   const { logout } = useAuth();
+  const themeColors = useThemeColors();
 
   // Refresh profile data when screen comes into focus (e.g., after editing)
   useFocusEffect(
@@ -113,8 +117,8 @@ export function ProfileScreen() {
       <ScreenHeader title="My Profile" onBack={() => router.navigate('/(tabs)')} />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.profileCard}>
-          <View style={styles.avatarPlaceholder}>
+        <View style={[styles.profileCard, { backgroundColor: themeColors.primary[300] }]}>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: themeColors.primary[100] }]}>
             <Profile2User color={colors.neutral[100]} size={40} variant="Bold" />
           </View>
           <Text style={styles.profileName}>{profile.name}</Text>
@@ -122,11 +126,11 @@ export function ProfileScreen() {
 
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{profile.experience}</Text>
+              <Text style={styles.summaryValue} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>{profile.experience}</Text>
               <Text style={styles.summaryLabel}>Attendance</Text>
             </View>
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{profile.classTeacher}</Text>
+              <Text style={styles.summaryValue} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>{profile.classTeacher}</Text>
               <Text style={styles.summaryLabel}>Assigned Sections</Text>
             </View>
           </View>
@@ -144,19 +148,22 @@ export function ProfileScreen() {
           <SettingRow
             title={settings[0].title}
             subtitle={settings[0].subtitle}
-            icon={<Profile2User color={colors.primary[300]} size={20} variant="Bold" />}
+            icon={<Profile2User color={themeColors.primary[300]} size={20} variant="Bold" />}
+            iconBg={themeColors.primary[50]}
             onPress={() => handleSettingPress(settings[0].id, settings[0].route)}
           />
           <SettingRow
             title={settings[1].title}
             subtitle={settings[1].subtitle}
-            icon={<Lock color={colors.primary[300]} size={20} variant="Bold" />}
+            icon={<Lock color={themeColors.primary[300]} size={20} variant="Bold" />}
+            iconBg={themeColors.primary[50]}
             onPress={() => handleSettingPress(settings[1].id, settings[1].route)}
           />
           <SettingRow
             title={settings[2].title}
             subtitle={settings[2].subtitle}
-            icon={<Notification1 color={colors.primary[300]} size={20} variant="Bold" />}
+            icon={<Notification1 color={themeColors.primary[300]} size={20} variant="Bold" />}
+            iconBg={themeColors.primary[50]}
             onPress={() => handleSettingPress(settings[2].id, settings[2].route)}
           />
         </View>
@@ -165,13 +172,15 @@ export function ProfileScreen() {
           <SettingRow
             title={settings[3].title}
             subtitle={settings[3].subtitle}
-            icon={<InfoCircle color={colors.primary[300]} size={20} variant="Bold" />}
+            icon={<InfoCircle color={themeColors.primary[300]} size={20} variant="Bold" />}
+            iconBg={themeColors.primary[50]}
             onPress={() => handleSettingPress(settings[3].id, settings[3].route)}
           />
           <SettingRow
             title={settings[4].title}
             subtitle={settings[4].subtitle}
-            icon={<Shield color={colors.primary[300]} size={20} variant="Bold" />}
+            icon={<Shield color={themeColors.primary[300]} size={20} variant="Bold" />}
+            iconBg={themeColors.primary[50]}
             onPress={() => handleSettingPress(settings[4].id, settings[4].route)}
           />
         </View>
@@ -229,11 +238,13 @@ const styles = StyleSheet.create({
   summaryItem: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'flex-end',
   },
   summaryValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.neutral[100],
+    textAlign: 'center',
   },
   summaryLabel: {
     marginTop: 4,

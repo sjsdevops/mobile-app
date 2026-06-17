@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -48,6 +48,21 @@ function SwipePunchButton({
   const translateX = useRef(new Animated.Value(0)).current;
   const done = useRef(false);
 
+  // Always keep a ref to the latest onComplete so the PanResponder
+  // (created once via useRef) never calls a stale closure.
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
+
+  // Reset the swipe thumb whenever the label changes (punch-in → punch-out)
+  const prevLabel = useRef(label);
+  useEffect(() => {
+    if (prevLabel.current !== label) {
+      prevLabel.current = label;
+      done.current = false;
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();
+    }
+  }, [label, translateX]);
+
   const pan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => !disabled,
@@ -60,7 +75,10 @@ function SwipePunchButton({
           Animated.timing(translateX, {
             toValue: TRAVEL, duration: 120, useNativeDriver: true,
           }).start(() => {
-            if (!done.current) { done.current = true; onComplete(); }
+            if (!done.current) {
+              done.current = true;
+              onCompleteRef.current();
+            }
           });
         } else {
           Animated.spring(translateX, { toValue: 0, useNativeDriver: true }).start();

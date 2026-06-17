@@ -72,8 +72,8 @@ export function LoginScreen() {
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Login</Text>
+        <Text style={styles.title}>Welcome Back to Sree Jayam School</Text>
+        <Text style={styles.subtitle}>Stay connected with your classes and school updates</Text>
 
         {/* Role tab switcher */}
         <View style={styles.roleRow}>

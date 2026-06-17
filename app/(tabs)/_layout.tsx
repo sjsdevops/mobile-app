@@ -1,6 +1,8 @@
 import { Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../src/theme/colors';
+import { useThemeColors } from '../../src/theme/ThemeContext';
 import { useAuth } from '../../src/contexts/AuthContext';
 import {
   HomeTabIcon,
@@ -13,14 +15,16 @@ import {
 export default function TabLayout() {
   const { user } = useAuth();
   const isStudent = user?.role === 'student';
+  const insets = useSafeAreaInsets();
+  const themeColors = useThemeColors();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary[300],
+        tabBarActiveTintColor: themeColors.primary[300],
         tabBarInactiveTintColor: colors.neutral[500],
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { height: 50 + insets.bottom, paddingBottom: insets.bottom + 6 }],
         tabBarLabelStyle: styles.tabLabel,
       }}
     >
@@ -69,8 +73,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral[100],
     borderTopWidth: 1,
     borderTopColor: colors.neutral[200],
-    height: 64,
-    paddingBottom: 10,
     paddingTop: 8,
   },
   tabLabel: {

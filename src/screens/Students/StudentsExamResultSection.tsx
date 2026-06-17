@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { colors } from '../../theme/colors';
+import { useThemeColors } from '../../theme/ThemeContext';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { ExamSection, ExamResult, useStudentsExamResultsVM } from './StudentsExamResults.vm';
 
@@ -29,26 +30,17 @@ interface StudentInfo {
 }
 
 function CircularProgress({ percentage }: { percentage: number }) {
+  const themeColors = useThemeColors();
   const circumference = 2 * Math.PI * 45;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
     <View style={styles.progressContainer}>
       <Svg width={120} height={120} viewBox="0 0 120 120">
+        <Circle cx="60" cy="60" r="45" fill="none" stroke={colors.neutral[200]} strokeWidth="8" />
         <Circle
-          cx="60"
-          cy="60"
-          r="45"
-          fill="none"
-          stroke={colors.neutral[200]}
-          strokeWidth="8"
-        />
-        <Circle
-          cx="60"
-          cy="60"
-          r="45"
-          fill="none"
-          stroke={colors.primary[300]}
+          cx="60" cy="60" r="45" fill="none"
+          stroke={themeColors.primary[300]}
           strokeWidth="8"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
@@ -65,10 +57,11 @@ function CircularProgress({ percentage }: { percentage: number }) {
 }
 
 function PieChart({ data }: { data: { [key: string]: number } }) {
+  const themeColors = useThemeColors();
   const colors_array = [
-    colors.primary[300],
-    colors.primary[500],
-    colors.primary[400],
+    themeColors.primary[300],
+    themeColors.primary[500],
+    themeColors.primary[400],
     colors.neutral[500],
     colors.neutral[400],
   ];
@@ -156,14 +149,14 @@ function ResultRow({ subject, max, obtained, grade }: { subject: string; max: nu
   );
 }
 
-function ExamReportSection({ title, result }: { title: string; result: ExamResult }) {
+function ExamReportSection({ title, result, dynStyles }: { title: string; result: ExamResult; dynStyles: Record<string, object> }) {
   const totalMarks = result.subjects.reduce((sum, item) => sum + item.max, 0);
   const obtainedMarks = result.subjects.reduce((sum, item) => sum + item.obtained, 0);
   return (
     <View style={styles.detailSection}>
       <Text style={styles.detailSectionTitle}>{title}</Text>
       <View style={styles.tableSection}>
-        <View style={styles.tableHeader}>
+        <View style={[styles.tableHeader, dynStyles.tableHeader]}>
           <Text style={[styles.tableHeaderCell, styles.subjectCell]}>Subject</Text>
           <Text style={[styles.tableHeaderCell, styles.numberCell]}>Max</Text>
           <Text style={[styles.tableHeaderCell, styles.numberCell]}>Obtained</Text>
@@ -195,9 +188,18 @@ function ExamReportSection({ title, result }: { title: string; result: ExamResul
 export function StudentsExamResultSectionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const themeColors = useThemeColors();
   const sectionId = Array.isArray(params.sectionId) ? params.sectionId[0] : params.sectionId;
   const studentId = Array.isArray(params.id) ? params.id[0] : params.id;
   const vm = useStudentsExamResultsVM(studentId);
+
+  const dynStyles = {
+    tableHeader: { backgroundColor: themeColors.primary[300] },
+    primaryButton: { backgroundColor: themeColors.primary[300] },
+    secondaryButton: { borderColor: themeColors.primary[300] },
+    secondaryButtonText: { color: themeColors.primary[300] },
+    schoolName: { color: themeColors.primary[500] },
+  };
 
   const mockSchool: SchoolInfo = {
     name: 'Sree Jayam School',
@@ -248,19 +250,12 @@ export function StudentsExamResultSectionScreen() {
         </View>
 
         {section.tests.map((test) => (
-          <ExamReportSection key={test.id} title={`UNIT TEST RESULT - ${section.tests.indexOf(test) + 1}`} result={test} />
+          <ExamReportSection key={test.id} title={`UNIT TEST RESULT - ${section.tests.indexOf(test) + 1}`} result={test} dynStyles={dynStyles} />
         ))}
 
-        <ExamReportSection title={`OVERALL REPORT OF ${section.title.toUpperCase()}`} result={section.overall} />
+        <ExamReportSection title={`OVERALL REPORT OF ${section.title.toUpperCase()}`} result={section.overall} dynStyles={dynStyles} />
 
-        <View style={styles.buttonRow}>
-          <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]} activeOpacity={0.85}>
-            <Text style={[styles.actionButtonText, styles.secondaryButtonText]}>Share Report</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionButton, styles.primaryButton]} activeOpacity={0.85}>
-            <Text style={[styles.actionButtonText, styles.primaryButtonText]}>Save as PDF</Text>
-          </TouchableOpacity>
-        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -494,34 +489,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.neutral[700],
     lineHeight: 18,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  actionButton: {
-    flex: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  primaryButton: {
-    backgroundColor: colors.primary[300],
-  },
-  secondaryButton: {
-    backgroundColor: colors.surface.DEFAULT,
-    borderWidth: 1,
-    borderColor: colors.primary[300],
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  primaryButtonText: {
-    color: colors.surface.DEFAULT,
-  },
-  secondaryButtonText: {
-    color: colors.primary[300],
   },
 });

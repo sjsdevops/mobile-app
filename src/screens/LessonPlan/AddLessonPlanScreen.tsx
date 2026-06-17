@@ -50,9 +50,68 @@ export function AddLessonPlanScreen() {
     const fetch = async () => {
       setLoadingData(true);
       try {
-        const data = await getAssignedSubjects(user.id, user.id);
-        setAssignedClasses(data.classes ?? []);
-        if (data.classes?.length > 0) setSelectedClass(data.classes[0].class_id);
+        const isCoordinatorRole = user.role?.toLowerCase().includes('coordinator') ||
+          user.role?.toLowerCase().includes('oridinator');
+
+        if (isCoordinatorRole) {
+          // Coordinator: get all classes, filter to sections where they are coordinator,
+          // then fetch subjects for those sections.
+          const { getAllClasses } = await import('../../services/classService');
+          const classesData = await getAllClasses(user.id);
+
+          const coordinatorClasses: import('../../services/lessonPlanService').AssignedClass[] = [];
+
+          for (const cls of classesData) {
+            const coordinatorSections = cls.sections.filter(
+              (sec) => sec.coordinator?.employee_id === user.id
+            );
+            if (coordinatorSections.length === 0) continue;
+
+            let subjectItems: any[] = [];
+            try {
+              const subjectsResp = await api.get(
+                `/acadamics/users/${user.id}/subjects?class_id=${cls.class_id}`
+              );
+              const subjectsData = subjectsResp.data?.data ?? subjectsResp.data;
+              subjectItems = subjectsData?.items ?? subjectsData ?? [];
+            } catch {
+              // continue with empty subjects
+            }
+
+            const sections = coordinatorSections.map((sec) => {
+              const sectionSubjects = subjectItems
+                .filter((s: any) => s.section?.section_id === sec.section_id)
+                .map((s: any) => ({
+                  section_subject_id: s.section_subject_id,
+                  subject_id: s.subject_id,
+                  subject_name: s.subject_name,
+                  subject_code: s.subject_code ?? '',
+                  subject_type: s.subject_type ?? 'Core',
+                }));
+
+              return {
+                section_id: sec.section_id,
+                section_name: sec.section_name,
+                subjects: sectionSubjects,
+              };
+            });
+
+            coordinatorClasses.push({
+              class_id: cls.class_id,
+              class_name: cls.class_name,
+              class_type: cls.class_type,
+              sections,
+            });
+          }
+
+          setAssignedClasses(coordinatorClasses);
+          if (coordinatorClasses.length > 0) setSelectedClass(coordinatorClasses[0].class_id);
+        } else {
+          // Teacher: use assigned subjects API
+          const data = await getAssignedSubjects(user.id, user.id);
+          setAssignedClasses(data.classes ?? []);
+          if (data.classes?.length > 0) setSelectedClass(data.classes[0].class_id);
+        }
       } catch (err) {
         console.error('[AddLesson] Failed to fetch subjects:', err);
       } finally {

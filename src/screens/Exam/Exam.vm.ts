@@ -355,5 +355,6 @@ export function useExamVM() {
     goBackToList,
     loading,
     submitting,
+    isCoordinatorForSection,
   };
 }

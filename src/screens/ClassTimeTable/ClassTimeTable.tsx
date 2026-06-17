@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Coffee, MoreCircle } from 'iconsax-react-nativejs';
 import { useRouter } from 'expo-router';
 import { colors } from '../../theme/colors';
+import { useThemeColors } from '../../theme/ThemeContext';
 import { useClassRoutineVM } from './ClassTimeTable.vm';
 import type { Period, PeriodStatus } from './ClassTimeTable.vm';
 
@@ -20,22 +21,21 @@ import type { Period, PeriodStatus } from './ClassTimeTable.vm';
 function PeriodRow({
   period,
   status,
+  themeColors,
 }: {
   period: Period;
   status: PeriodStatus;
+  themeColors: ReturnType<typeof useThemeColors>;
 }) {
   const isInProgress = status === 'in-progress';
 
   if (period.isBreak) {
     return (
       <View style={styles.row}>
-        {/* time column */}
         <View style={styles.timeCol}>
           <Text style={styles.timeStart}>{period.startTime}</Text>
           <Text style={styles.timeEnd}>{period.endTime}</Text>
         </View>
-
-        {/* break card */}
         <View style={styles.breakCard}>
           <Text style={styles.breakLabel}>{period.breakLabel}</Text>
           <Coffee color={colors.neutral[400]} size={22} variant="Linear" />
@@ -46,21 +46,18 @@ function PeriodRow({
 
   return (
     <View style={styles.row}>
-      {/* time column */}
       <View style={styles.timeCol}>
         <Text style={styles.timeStart}>{period.startTime}</Text>
         <Text style={styles.timeEnd}>{period.endTime}</Text>
       </View>
 
-      {/* period card */}
       <View
         style={[
           styles.periodCard,
-          isInProgress && styles.periodCardActive,
+          isInProgress && { backgroundColor: themeColors.primary[50] ?? 'rgba(20,79,204,0.07)', borderWidth: 1, borderColor: themeColors.primary[100] },
         ]}
       >
-        {/* left accent only for in-progress */}
-        {isInProgress && <View style={styles.accentBar} />}
+        {isInProgress && <View style={[styles.accentBar, { backgroundColor: themeColors.primary[300] }]} />}
 
         <View style={styles.periodContent}>
           <View style={styles.periodLeft}>
@@ -74,7 +71,7 @@ function PeriodRow({
             </View>
           )}
           {status === 'in-progress' && (
-            <View style={styles.badgeInProgress}>
+            <View style={[styles.badgeInProgress, { backgroundColor: themeColors.primary[300] }]}>
               <Text style={styles.badgeInProgressText}>In Progress</Text>
             </View>
           )}
@@ -89,6 +86,7 @@ function PeriodRow({
 export function ClassTimeTable() {
   const router = useRouter();
   const vm = useClassRoutineVM();
+  const themeColors = useThemeColors();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -135,7 +133,7 @@ export function ClassTimeTable() {
           return (
             <TouchableOpacity
               key={item.date.toISOString()}
-              style={[styles.dateChip, isSel && styles.dateChipActive]}
+              style={[styles.dateChip, isSel && { backgroundColor: themeColors.primary[300] }]}
               onPress={() => vm.setSelectedDate(new Date(item.date))}
               activeOpacity={0.8}
             >
@@ -160,7 +158,7 @@ export function ClassTimeTable() {
           data={vm.periods}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <PeriodRow period={item} status={vm.getPeriodStatus(item)} />
+            <PeriodRow period={item} status={vm.getPeriodStatus(item)} themeColors={themeColors} />
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}

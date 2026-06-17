@@ -23,6 +23,7 @@ export interface ClassAttendanceItem {
     status: 'present' | 'absent' | 'not_marked';
     is_present: boolean;
     is_absent: boolean;
+    is_approved?: boolean;
 }
 
 export interface ClassAttendanceResponse {
