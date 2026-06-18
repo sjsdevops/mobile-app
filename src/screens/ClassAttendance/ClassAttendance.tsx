@@ -436,7 +436,7 @@ function StepMark({
 
           {/* For teacher role: disable until all students are marked */}
           {(() => {
-            const disabled = vm.isTeacher && vm.allStudentsMarked;
+            const disabled = vm.isTeacher && vm.attendanceAlreadySubmitted;
             return (
               <TouchableOpacity
                 style={[styles.primaryBtn, disabled && styles.primaryBtnDisabled, disabled && { height: 60 }]}

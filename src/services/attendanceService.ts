@@ -187,7 +187,7 @@ export async function approveStudentAttendance(payload: {
     class_id: string;
     section_id: string;
     date: string;
-    attendance: Array<{ student_id: string; is_approved: boolean }>;
+    attendance: Array<{ student_id: string; is_approved: boolean; is_present: boolean; is_absent: boolean }>;
     modified_by: string;
 }): Promise<void> {
     await api.patch('/mobile/attendance/students/approve', payload);

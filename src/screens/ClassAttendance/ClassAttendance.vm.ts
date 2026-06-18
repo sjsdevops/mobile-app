@@ -64,6 +64,8 @@ export function useAttendanceVM() {
   const [isClassTeacher, setIsClassTeacher] = useState(false);
   const [approving, setApproving] = useState(false);
   const [hasUnsavedEdits, setHasUnsavedEdits] = useState(false);
+  // Set once on load — true only when attendance was already submitted to the server
+  const [attendanceAlreadySubmitted, setAttendanceAlreadySubmitted] = useState(false);
 
   // Check if user is coordinator for this section
   useEffect(() => {
@@ -112,6 +114,10 @@ export function useAttendanceVM() {
             const allApproved =
               attendanceData.items.length > 0 &&
               attendanceData.items.every((item: any) => item.is_approved === true);
+            const allSubmitted =
+              attendanceData.items.length > 0 &&
+              attendanceData.items.every((item: any) => item.status == "present" || item.status == "absent");
+              setAttendanceAlreadySubmitted(allSubmitted)
             setAlreadyApproved(allApproved);
             // If not yet approved, coordinator needs to approve — treat as having edits
             if (!allApproved) {
@@ -231,6 +237,8 @@ export function useAttendanceVM() {
         date: getTodayDate(),
         attendance: markedStudents.map((s) => ({
           student_id: s.id,
+          is_present: s.status === 'present',
+          is_absent: s.status === 'absent',
           is_approved: true,
         })),
         modified_by: user.id,
@@ -269,7 +277,7 @@ export function useAttendanceVM() {
     approving,
     attendanceMarked,
     alreadyApproved,
-    allStudentsMarked,
+    attendanceAlreadySubmitted,
     isTeacher,
     hasUnsavedEdits,
   };
