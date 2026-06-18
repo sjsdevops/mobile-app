@@ -158,7 +158,7 @@ export function LeaveTrackerScreen() {
                             <AbsentCard
                                 key={item.attendance_date}
                                 item={item}
-                                onApply={() => vm.onApplyLeave(item.attendance_date)}
+                                onApply={() => router.push({ pathname: '/apply-leave', params: { date: item.attendance_date } })}
                             />
                         ))}
 
@@ -188,19 +188,30 @@ export function LeaveTrackerScreen() {
 
                     /* ─── Tab 2: Leave Request ─── */
                 ) : (
-                    <FlatList
-                        data={vm.leaveRequests}
-                        keyExtractor={(item) => item.leave_request_id}
-                        contentContainerStyle={s.scroll}
-                        showsVerticalScrollIndicator={false}
-                        ListEmptyComponent={<Text style={s.empty}>No leave requests</Text>}
-                        renderItem={({ item }) => (
-                            <LeaveRequestCard
-                                item={item}
-                                onPress={() => router.push({ pathname: '/leave-details', params: { leaveId: item.leave_request_id } })}
-                            />
-                        )}
-                    />
+                    <>
+                        <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4 }}>
+                            <TouchableOpacity
+                                style={{ backgroundColor: colors.primary[300], borderRadius: 12, paddingVertical: 13, alignItems: 'center' }}
+                                onPress={() => router.push('/apply-leave')}
+                                activeOpacity={0.85}
+                            >
+                                <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>+ Request Leave</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <FlatList
+                            data={vm.leaveRequests}
+                            keyExtractor={(item) => item.leave_request_id}
+                            contentContainerStyle={s.scroll}
+                            showsVerticalScrollIndicator={false}
+                            ListEmptyComponent={<Text style={s.empty}>No leave requests yet</Text>}
+                            renderItem={({ item }) => (
+                                <LeaveRequestCard
+                                    item={item}
+                                    onPress={() => router.push({ pathname: '/leave-details', params: { leaveId: item.leave_request_id } })}
+                                />
+                            )}
+                        />
+                    </>
                 )
             )}
         </SafeAreaView>
