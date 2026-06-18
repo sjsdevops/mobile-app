@@ -339,7 +339,8 @@ export function DashboardScreen() {
                   bg={item.bg}
                   icon={item.icon}
                   iconColor={item.iconColor}
-                  onPress={item.id === 'myattendance' ? () => router.push('/my-attendance') : undefined}
+                  onPress={item.id === 'myattendance' ? () => router.push('/my-attendance') :
+                    item.id === 'leave' ? () => router.push('/leave-tracker') : undefined}
                 />
               ))}
             </View>

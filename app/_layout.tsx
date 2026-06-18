@@ -23,7 +23,7 @@ export default function RootLayout() {
               <Stack.Screen name="attendance-history" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="student-info" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="case-study" options={{ headerShown: false, animation: 'slide_from_right' }} />
-            <Stack.Screen name="student-exam-results" options={{ headerShown: false, animation: 'slide_from_right' }} />
+              <Stack.Screen name="student-exam-results" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="student-exam-results/[sectionId]" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="edit-profile" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="change-password" options={{ headerShown: false, animation: 'slide_from_right' }} />
@@ -34,6 +34,8 @@ export default function RootLayout() {
               <Stack.Screen name="homework" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="add-homework" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="notifications" options={{ headerShown: false, animation: 'slide_from_right' }} />
+              <Stack.Screen name="leave-tracker" options={{ headerShown: false, animation: 'slide_from_right' }} />
+              <Stack.Screen name="leave-details" options={{ headerShown: false, animation: 'slide_from_right' }} />
             </Stack>
           </ThemeProvider>
         </AuthProvider>
