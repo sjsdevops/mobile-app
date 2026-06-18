@@ -79,5 +79,11 @@ export async function applyLeave(payload: {
     created_by: string;
     modified_by: string;
 }): Promise<void> {
-    await api.post('/leave-requests', payload);
+    // Ensure dates include timestamp: YYYY-MM-DDTHH:MM:SS
+    const toISO = (d: string) => d.includes('T') ? d : `${d}T00:00:00`;
+    await api.post('/leave-requests', {
+        ...payload,
+        from_date: toISO(payload.from_date),
+        to_date: toISO(payload.to_date),
+    });
 }
