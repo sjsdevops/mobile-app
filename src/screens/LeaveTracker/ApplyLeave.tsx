@@ -20,7 +20,7 @@ import { ModalDropdown } from '../../components/ui/ModalDropdown';
 import { DatePickerField } from '../../components/ui/DatePickerField';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
-import { applyLeave } from '../../services/leaveService';
+import { applyLeave, getLeaveRequests, type LeaveRequest } from '../../services/leaveService';
 
 interface LeaveType {
     leave_type_id: string;
@@ -35,6 +35,7 @@ export function ApplyLeaveScreen() {
     const { date: prefillDate } = useLocalSearchParams<{ date?: string }>();
 
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
+    const [existingLeaveRequests, setExistingLeaveRequests] = useState<LeaveRequest[]>([]);
     const [selectedLeaveTypeId, setSelectedLeaveTypeId] = useState('');
     const [fromDate, setFromDate] = useState(prefillDate || '');
     const [toDate, setToDate] = useState(prefillDate || '');
@@ -44,19 +45,26 @@ export function ApplyLeaveScreen() {
 
     useEffect(() => {
         (async () => {
+            if (!user?.id) return;
             try {
-                const response = await api.get('/leave-types?status=true&limit=50');
-                const data = response.data?.data ?? response.data;
+                const [leaveTypesResponse, leaveRequestsData] = await Promise.all([
+                    api.get('/leave-types?status=true&limit=50'),
+                    getLeaveRequests(user.id),
+                ]);
+                
+                const data = leaveTypesResponse.data?.data ?? leaveTypesResponse.data;
                 const items: LeaveType[] = data?.items ?? [];
                 setLeaveTypes(items);
+                setExistingLeaveRequests(leaveRequestsData);
+                
                 if (items.length > 0) setSelectedLeaveTypeId(items[0].leave_type_id);
             } catch (err) {
-                console.error('[ApplyLeave] Failed to load leave types:', err);
+                console.error('[ApplyLeave] Failed to load data:', err);
             } finally {
                 setLoading(false);
             }
         })();
-    }, []);
+    }, [user?.id]);
 
     const leaveTypeOptions = useMemo(() =>
         leaveTypes.map((lt) => ({ id: lt.leave_type_id, label: `${lt.name} (${lt.code})` })),
@@ -69,6 +77,54 @@ export function ApplyLeaveScreen() {
         if (!fromDate) { Alert.alert('Error', 'Please select a from date'); return; }
         if (!toDate) { Alert.alert('Error', 'Please select a to date'); return; }
         if (toDate < fromDate) { Alert.alert('Error', 'To date cannot be before from date'); return; }
+
+        // Check if the leave date is today, tomorrow, or day after tomorrow
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to start of day
+        
+        const selectedFromDate = new Date(fromDate);
+        selectedFromDate.setHours(0, 0, 0, 0);
+        
+        const selectedToDate = new Date(toDate);
+        selectedToDate.setHours(0, 0, 0, 0);
+        
+        const dayAfterTomorrow = new Date(today);
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
+        // If from date is today or within the next 2 days, show HR contact message
+        if (selectedFromDate >= today && selectedFromDate <= dayAfterTomorrow) {
+            Alert.alert(
+                'Contact HR Required',
+                'You cannot apply leave for today, tomorrow, or the day after tomorrow through the app. Please contact HR directly.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
+
+        // Check if a leave request already exists for the selected date range
+        const hasOverlap = existingLeaveRequests.some((request) => {
+            const requestFrom = new Date(request.from_date.split('T')[0]);
+            requestFrom.setHours(0, 0, 0, 0);
+            
+            const requestTo = new Date(request.to_date.split('T')[0]);
+            requestTo.setHours(0, 0, 0, 0);
+
+            // Check if there's any overlap between the selected dates and existing request dates
+            return (
+                (selectedFromDate >= requestFrom && selectedFromDate <= requestTo) ||
+                (selectedToDate >= requestFrom && selectedToDate <= requestTo) ||
+                (selectedFromDate <= requestFrom && selectedToDate >= requestTo)
+            );
+        });
+
+        if (hasOverlap) {
+            Alert.alert(
+                'Duplicate Leave Request',
+                'A leave request already exists for the selected date range. Please check your existing leave requests.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
 
         setSaving(true);
         try {

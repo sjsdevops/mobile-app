@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { getEmployeeAttendanceHistory, type EmployeeAttendanceRecord } from '../../services/attendanceService';
+import { getLeaveSummary, getLeaveRequests, type UpcomingHoliday, type LeaveRequest } from '../../services/leaveService';
 
 export type AttendanceStatus = 'Present' | 'Absent';
 
@@ -38,7 +40,10 @@ function calcTotal(checkIn: string | null, checkOut: string | null): string | un
 
 export function useAttendanceHistoryVM() {
   const { user } = useAuth();
+  const router = useRouter();
   const [allRecords, setAllRecords] = useState<EmployeeAttendanceRecord[]>([]);
+  const [holidays, setHolidays] = useState<UpcomingHoliday[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -51,11 +56,18 @@ export function useAttendanceHistoryVM() {
     const fetch = async () => {
       setLoading(true);
       try {
-        const data = await getEmployeeAttendanceHistory(user.id);
-        setAllRecords(data.records ?? []);
-        setTotalDaysFromApi(data.total_days ?? 0);
-        setPresentDaysFromApi(data.present_days ?? 0);
-        setAbsentDaysFromApi(data.absent_days ?? 0);
+        const [attendanceData, leaveSummary, leaves] = await Promise.all([
+          getEmployeeAttendanceHistory(user.id),
+          getLeaveSummary(user.id, selectedYear),
+          getLeaveRequests(user.id),
+        ]);
+        
+        setAllRecords(attendanceData.records ?? []);
+        setTotalDaysFromApi(attendanceData.total_days ?? 0);
+        setPresentDaysFromApi(attendanceData.present_days ?? 0);
+        setAbsentDaysFromApi(attendanceData.absent_days ?? 0);
+        setHolidays(leaveSummary.upcoming_holidays ?? []);
+        setLeaveRequests(leaves);
       } catch (err) {
         console.error('[AttendanceHistory] Failed:', err);
       } finally {
@@ -63,7 +75,7 @@ export function useAttendanceHistoryVM() {
       }
     };
     fetch();
-  }, [user]);
+  }, [user, selectedYear]);
 
   // Filter records by selected month
   const filteredRecords = useMemo(() => {
@@ -95,6 +107,34 @@ export function useAttendanceHistoryVM() {
   const presentCount = filteredRecords.filter((r) => r.is_present).length;
   const absentCount = filteredRecords.filter((r) => r.is_absent).length;
 
+  // Calculate holiday count for selected month
+  const holidayCount = useMemo(() => {
+    return holidays.filter((h) => {
+      const holidayDate = new Date(h.holiday_date);
+      return holidayDate.getMonth() === selectedMonth && holidayDate.getFullYear() === selectedYear;
+    }).length;
+  }, [holidays, selectedMonth, selectedYear]);
+
+  // Calculate paid leave count for selected month
+  const paidLeaveCount = useMemo(() => {
+    return leaveRequests.filter((leave) => {
+      if (leave.leave_mode !== 'paid') return false;
+      if (leave.approval_status !== 'approved') return false;
+      
+      const fromDate = new Date(leave.from_date);
+      const toDate = new Date(leave.to_date);
+      
+      // Check if the leave falls within the selected month/year
+      const selectedMonthStart = new Date(selectedYear, selectedMonth, 1);
+      const selectedMonthEnd = new Date(selectedYear, selectedMonth + 1, 0);
+      
+      // Check if there's any overlap between leave dates and selected month
+      return (
+        (fromDate <= selectedMonthEnd && toDate >= selectedMonthStart)
+      );
+    }).length;
+  }, [leaveRequests, selectedMonth, selectedYear]);
+
   const monthLabel = `${MONTHS[selectedMonth].slice(0, 3)} ${selectedYear}`;
   const monthTitle = `${MONTHS[selectedMonth]} ${selectedYear}`;
   const totalDays = filteredRecords.length;
@@ -117,12 +157,8 @@ export function useAttendanceHistoryVM() {
     setMonthPickerVisible(true);
   }
 
-  function onExport() {
-    Alert.alert('Download', 'Attendance report download will be available soon.');
-  }
-
   function onApplyLeave() {
-    Alert.alert('Apply Leave', 'Leave application will be available soon.');
+    router.push('/apply-leave');
   }
 
   return {
@@ -131,11 +167,10 @@ export function useAttendanceHistoryVM() {
     totalDays,
     presentCount,
     absentCount,
-    paidLeaveCount: 0,
-    holidayCount: 0,
+    paidLeaveCount,
+    holidayCount,
     history,
     loading,
-    onExport,
     onApplyLeave,
     onChangeMonth,
     monthPickerVisible,

@@ -16,7 +16,6 @@ import {
   ArrowLeft,
   ArrowRight2,
   Clock,
-  DocumentDownload,
   LoginCurve,
   LogoutCurve,
 } from 'iconsax-react-nativejs';
@@ -89,9 +88,6 @@ export function AttendanceHistoryScreen() {
           <Text style={styles.headerTitle}>Attendance History</Text>
         </View>
 
-        <TouchableOpacity style={styles.circleBtn} onPress={vm.onExport} activeOpacity={0.75}>
-          <DocumentDownload color={colors.neutral[800]} size={20} variant="Linear" />
-        </TouchableOpacity>
       </View>
 
       <View style={styles.filterRow}>

@@ -1,10 +1,5 @@
 import type { EmployeeSalary } from '../../services/payrollService';
-
-// App logo encoded as a simple SVG school icon (placeholder until replaced)
-const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56">
-  <rect width="56" height="56" rx="12" fill="#144FCC"/>
-  <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-size="26" font-family="Arial" font-weight="bold" fill="white">SJ</text>
-</svg>`;
+import { Asset } from 'expo-asset';
 
 function fmt(amount: number): string {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
@@ -20,8 +15,41 @@ function fmtDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+function numberToWords(num: number): string {
+    if (num === 0) return 'Zero';
+
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+    function convertLessThanThousand(n: number): string {
+        if (n === 0) return '';
+        if (n < 10) return ones[n];
+        if (n < 20) return teens[n - 10];
+        if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+        return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' ' + convertLessThanThousand(n % 100) : '');
+    }
+
+    const crore = Math.floor(num / 10000000);
+    const lakh = Math.floor((num % 10000000) / 100000);
+    const thousand = Math.floor((num % 100000) / 1000);
+    const remainder = num % 1000;
+
+    let result = '';
+    if (crore > 0) result += convertLessThanThousand(crore) + ' Crore ';
+    if (lakh > 0) result += convertLessThanThousand(lakh) + ' Lakh ';
+    if (thousand > 0) result += convertLessThanThousand(thousand) + ' Thousand ';
+    if (remainder > 0) result += convertLessThanThousand(remainder);
+
+    return result.trim() + ' Rupees Only';
+}
+
 export function generatePayslipHtml(salary: EmployeeSalary): string {
-    const logoDataUri = `data:image/svg+xml;base64,${btoa(LOGO_SVG)}`;
+    // Get the app logo asset URI
+    const logoAsset = Asset.fromModule(require('../../../assets/icon.png'));
+    const logoUri = logoAsset.uri || 'https://via.placeholder.com/56x56/144FCC/ffffff?text=SJ';
+    
+    const netAmountInWords = numberToWords(Math.round(salary.net_salary));
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -71,12 +99,14 @@ export function generatePayslipHtml(salary: EmployeeSalary): string {
   .total-row td { font-weight: 700; font-size: 14px; background: #f9fafb; border-top: 2px solid #e5e7eb; }
 
   /* Net salary */
-  .net-bar { margin: 24px 32px 32px; background: linear-gradient(135deg, #144FCC, #1e3a8a); border-radius: 16px; padding: 22px 28px; display: flex; justify-content: space-between; align-items: center; }
+  .net-bar { margin: 24px 32px 32px; background: linear-gradient(135deg, #144FCC, #1e3a8a); border-radius: 16px; padding: 22px 28px; }
+  .net-bar-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
   .net-bar .net-label { font-size: 14px; color: rgba(255,255,255,0.8); font-weight: 500; }
   .net-bar .net-amount { font-size: 26px; font-weight: 800; color: #fff; }
+  .net-bar .net-words { font-size: 12px; color: rgba(255,255,255,0.75); font-style: italic; margin-top: 8px; }
 
   /* Footer */
-  .footer { text-align: center; font-size: 11px; color: #9ca3af; padding: 12px 32px 28px; }
+  .footer { text-align: center; font-size: 13px; color: #4b5563; padding: 12px 32px 28px; font-weight: 500; }
 </style>
 </head>
 <body>
@@ -84,7 +114,7 @@ export function generatePayslipHtml(salary: EmployeeSalary): string {
 
   <!-- Header -->
   <div class="header">
-    <img src="${logoDataUri}" alt="Logo"/>
+    <img src="${logoUri}" alt="Logo" style="object-fit: cover;"/>
     <div class="header-text">
       <h1>Sree Jayam School</h1>
       <p>Employee Payslip</p>
@@ -112,8 +142,14 @@ export function generatePayslipHtml(salary: EmployeeSalary): string {
   </div>
 
   <!-- Pay Period -->
-  <div class="period-bar">
-    📅 Pay Period: ${fmtDate(salary.period_start)} — ${fmtDate(salary.period_end)}
+  <div class="period-bar" style="display:flex; align-items:center; gap:10px">
+  <span>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" fill ="#144FCC" id="Layer_1" data-name="Layer 1" viewBox="0 0 24 24" width="16" height="16"><path d="M0,8v-1C0,4.243,2.243,2,5,2h1V1c0-.552,.447-1,1-1s1,.448,1,1v1h8V1c0-.552,.447-1,1-1s1,.448,1,1v1h1c2.757,0,5,2.243,5,5v1H0Zm24,2v9c0,2.757-2.243,5-5,5H5c-2.757,0-5-2.243-5-5V10H24Zm-12,9c0-.552-.447-1-1-1H6c-.553,0-1,.448-1,1s.447,1,1,1h5c.553,0,1-.448,1-1Zm7-4c0-.552-.447-1-1-1H6c-.553,0-1,.448-1,1s.447,1,1,1h12c.553,0,1-.448,1-1Z"/></svg>
+</span>
+<p>
+    Pay Period: ${fmtDate(salary.period_start)} — ${fmtDate(salary.period_end)}
+    <p>
   </div>
 
   <!-- Summary Strip -->
@@ -156,8 +192,11 @@ export function generatePayslipHtml(salary: EmployeeSalary): string {
 
   <!-- Net Salary -->
   <div class="net-bar">
-    <div class="net-label">Net Take-Home Salary</div>
-    <div class="net-amount">${fmt(salary.net_salary)}</div>
+    <div class="net-bar-top">
+      <div class="net-label">Net Take-Home Salary</div>
+      <div class="net-amount">${fmt(salary.net_salary)}</div>
+    </div>
+    <div class="net-words">${netAmountInWords}</div>
   </div>
 
   <div class="footer">This is a system-generated payslip. No signature required.</div>

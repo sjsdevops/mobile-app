@@ -107,9 +107,9 @@ export function ClassTimeTable() {
           <Text style={styles.headerSub}>{vm.headerInfo.subtitle}</Text>
         </View>
 
-        <TouchableOpacity style={styles.circleBtn}>
+        {/* <TouchableOpacity style={styles.circleBtn}>
           <MoreCircle color={colors.neutral[800]} size={20} variant="Linear" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <View style={styles.divider} />

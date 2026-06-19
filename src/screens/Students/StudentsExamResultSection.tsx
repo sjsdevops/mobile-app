@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
 import { colors } from '../../theme/colors';
 import { useThemeColors } from '../../theme/ThemeContext';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
@@ -64,35 +64,99 @@ function PieChart({ data }: { data: { [key: string]: number } }) {
     themeColors.primary[400],
     colors.neutral[500],
     colors.neutral[400],
+    colors.neutral[300],
   ];
 
   const entries = Object.entries(data);
-  const total = entries.reduce((sum, [, value]) => sum + value, 0);
-  let currentAngle = -90;
+  
+  // Handle empty data or all zeros
+  if (entries.length === 0) {
+    return (
+      <View style={styles.emptyChartContainer}>
+        <Text style={styles.emptyChartText}>No performance data available</Text>
+      </View>
+    );
+  }
 
-  const paths = entries.map(([label, value], index) => {
-    const sliceAngle = (value / total) * 360;
+  const total = entries.reduce((sum, [, value]) => sum + value, 0);
+  
+  // Handle case where all values are 0
+  if (total === 0) {
+    return (
+      <View style={styles.emptyChartContainer}>
+        <Text style={styles.emptyChartText}>No performance data available</Text>
+      </View>
+    );
+  }
+
+  // For pie chart showing academic performance (percentages), we need to show proportion out of 100
+  // If total is less than 100, add a gray slice for the remaining portion
+  const hasRemainder = total < 100;
+  const remainder = hasRemainder ? 100 - total : 0;
+  
+  const allEntries = hasRemainder 
+    ? [...entries, ['Remaining', remainder] as [string, number]]
+    : entries;
+
+  let currentAngle = -90;
+  const paths: JSX.Element[] = [];
+  const labels: JSX.Element[] = [];
+
+  allEntries.forEach(([label, value], index) => {
+    const sliceAngle = (value / 100) * 360; // Always calculate based on 100%
     const startAngle = currentAngle;
     const endAngle = currentAngle + sliceAngle;
+    const midAngle = (startAngle + endAngle) / 2;
     currentAngle = endAngle;
 
     const startRad = (startAngle * Math.PI) / 180;
     const endRad = (endAngle * Math.PI) / 180;
-    const largeArc = sliceAngle > 180 ? 1 : 0;
+    
+    // Calculate label position (at 60% of radius from center)
+    const labelRadius = 25;
+    const midRad = (midAngle * Math.PI) / 180;
+    const labelX = 50 + labelRadius * Math.cos(midRad);
+    const labelY = 50 + labelRadius * Math.sin(midRad);
 
-    const x1 = 50 + 40 * Math.cos(startRad);
-    const y1 = 50 + 40 * Math.sin(startRad);
-    const x2 = 50 + 40 * Math.cos(endRad);
-    const y2 = 50 + 40 * Math.sin(endRad);
-    const pathData = `M 50 50 L ${x1} ${y1} A 40 40 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    // For a full circle (or nearly full), draw a circle instead of a path
+    if (sliceAngle >= 359.9) {
+      paths.push(<Circle key={`path-${label}`} cx="50" cy="50" r="40" fill={colors_array[index % colors_array.length]} />);
+    } else {
+      const largeArc = sliceAngle > 180 ? 1 : 0;
 
-    return <Path key={label} d={pathData} fill={colors_array[index % colors_array.length]} />;
+      const x1 = 50 + 40 * Math.cos(startRad);
+      const y1 = 50 + 40 * Math.sin(startRad);
+      const x2 = 50 + 40 * Math.cos(endRad);
+      const y2 = 50 + 40 * Math.sin(endRad);
+      const pathData = `M 50 50 L ${x1} ${y1} A 40 40 0 ${largeArc} 1 ${x2} ${y2} Z`;
+
+      paths.push(<Path key={`path-${label}`} d={pathData} fill={colors_array[index % colors_array.length]} />);
+    }
+
+    // Add label only if slice is large enough (> 5%)
+    if (value > 5 && label !== 'Remaining') {
+      labels.push(
+        <SvgText
+          key={`label-${label}`}
+          x={labelX}
+          y={labelY}
+          fill="#fff"
+          fontSize="6"
+          fontWeight="600"
+          textAnchor="middle"
+          alignmentBaseline="middle"
+        >
+          {label}
+        </SvgText>
+      );
+    }
   });
 
   return (
-    <View>
+    <View style={styles.pieChartContainer}>
       <Svg width={150} height={150} viewBox="0 0 100 100">
         {paths}
+        {labels}
       </Svg>
       <View style={styles.pieLegend}>
         {entries.map((item, index) => (
@@ -103,7 +167,7 @@ function PieChart({ data }: { data: { [key: string]: number } }) {
                 { backgroundColor: colors_array[index % colors_array.length] },
               ]}
             />
-            <Text style={styles.legendLabel}>{item[0]}</Text>
+            <Text style={styles.legendLabel}>{item[0]}: {item[1].toFixed(1)}%</Text>
           </View>
         ))}
       </View>
@@ -208,10 +272,10 @@ export function StudentsExamResultSectionScreen() {
     city: 'Vellore - 632002',
   };
 
-  const mockStudent: StudentInfo = {
-    name: 'Sneha Gupta',
-    roll: '14',
-    className: 'X-A',
+  const studentInfo: StudentInfo = {
+    name: vm.studentName || 'Student',
+    roll: vm.studentRoll || '-',
+    className: vm.studentClass || '-',
   };
 
   const section = vm.examSections.find((item) => item.id === sectionId);
@@ -234,7 +298,7 @@ export function StudentsExamResultSectionScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <SchoolCard school={mockSchool} />
-        <StudentCard student={mockStudent} />
+        <StudentCard student={studentInfo} />
 
         <View style={styles.detailMetricBlock}>
           <Text style={styles.detailMetricLabel}>ATTENDANCE</Text>
@@ -246,7 +310,7 @@ export function StudentsExamResultSectionScreen() {
 
         <View style={styles.detailMetricBlock}>
           <Text style={styles.detailMetricLabel}>ACADEMIC PERFORMANCE</Text>
-          <PieChart data={section.overall.academicPerformance} />
+          <PieChart data={section.overall.academicPerformance || {}} />
         </View>
 
         {section.tests.map((test) => (
@@ -413,6 +477,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.neutral[700],
     fontWeight: '500',
+  },
+  emptyChartContainer: {
+    width: 150,
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[100],
+    borderRadius: 75,
+  },
+  emptyChartText: {
+    fontSize: 12,
+    color: colors.neutral[500],
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  pieChartContainer: {
+    alignItems: 'center',
   },
   detailSection: {
     marginBottom: 24,

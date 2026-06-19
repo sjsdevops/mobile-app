@@ -1,5 +1,6 @@
 import {
-    Share,
+    ActivityIndicator,
+    Alert,
     StatusBar,
     StyleSheet,
     Text,
@@ -9,8 +10,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
-import { Share as ShareIcon } from 'iconsax-react-nativejs';
-import { useMemo } from 'react';
+import { DocumentDownload } from 'iconsax-react-nativejs';
+import { useMemo, useState } from 'react';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { generatePayslipHtml } from './payslipHtml';
@@ -25,6 +28,7 @@ function fmtMonth(month: string): string {
 export function PayrollDetailScreen() {
     const router = useRouter();
     const { salaryData } = useLocalSearchParams<{ salaryData: string }>();
+    const [downloading, setDownloading] = useState(false);
 
     const salary: EmployeeSalary | null = useMemo(() => {
         try {
@@ -36,19 +40,38 @@ export function PayrollDetailScreen() {
 
     const html = useMemo(() => (salary ? generatePayslipHtml(salary) : ''), [salary]);
 
-    async function handleShare() {
+    async function handleDownloadPDF() {
         if (!salary) return;
+        
+        setDownloading(true);
         try {
-            await Share.share({
-                title: `Payslip - ${fmtMonth(salary.salary_month)}`,
-                message:
-                    `Payslip for ${salary.staff_name} — ${fmtMonth(salary.salary_month)}\n` +
-                    `Gross: ₹${salary.gross}\n` +
-                    `Deductions: ₹${salary.total_deduct}\n` +
-                    `Net Salary: ₹${salary.net_salary}`,
+            // Generate PDF from the same HTML template
+            const { uri } = await Print.printToFileAsync({
+                html,
+                base64: false,
             });
-        } catch {
-            // user cancelled
+
+            // Format: employeeId_Month-Year.pdf (e.g., EMP001_January-2024.pdf)
+            const monthYear = fmtMonth(salary.salary_month); // "January 2024"
+            const [month, year] = monthYear.split(' ');
+            const fileName = `${salary.staff_name}_${month}-${year}.pdf`;
+
+            // Share/Download the PDF
+            const isAvailable = await Sharing.isAvailableAsync();
+            if (isAvailable) {
+                await Sharing.shareAsync(uri, {
+                    mimeType: 'application/pdf',
+                    dialogTitle: `Download Payslip - ${monthYear}`,
+                    UTI: 'com.adobe.pdf',
+                });
+            } else {
+                Alert.alert('Success', 'PDF generated successfully!');
+            }
+        } catch (error) {
+            console.error('[PayrollDetail] PDF generation failed:', error);
+            Alert.alert('Error', 'Failed to generate PDF. Please try again.');
+        } finally {
+            setDownloading(false);
         }
     }
 
@@ -60,8 +83,17 @@ export function PayrollDetailScreen() {
                 onBack={() => router.back()}
                 rightElement={
                     salary ? (
-                        <TouchableOpacity style={s.shareBtn} onPress={handleShare} activeOpacity={0.8}>
-                            <ShareIcon color={colors.primary[300]} size={20} variant="Bold" />
+                        <TouchableOpacity 
+                            style={[s.actionBtn, downloading && s.actionBtnDisabled]} 
+                            onPress={handleDownloadPDF} 
+                            activeOpacity={0.8}
+                            disabled={downloading}
+                        >
+                            {downloading ? (
+                                <ActivityIndicator size="small" color={colors.primary[300]} />
+                            ) : (
+                                <DocumentDownload color={colors.primary[300]} size={20} variant="Bold" />
+                            )}
                         </TouchableOpacity>
                     ) : undefined
                 }
@@ -91,10 +123,16 @@ const s = StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.surface.light },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
     webview: { flex: 1, backgroundColor: '#f4f6fb' },
-    shareBtn: {
+    actionBtn: {
         padding: 8,
         borderRadius: 10,
         backgroundColor: colors.primary.alpha ?? '#EEF2FF',
+        minWidth: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    actionBtnDisabled: {
+        opacity: 0.5,
     },
     errorText: { fontSize: 14, color: colors.neutral[500] },
     backLink: { fontSize: 14, fontWeight: '600', color: colors.primary[300] },

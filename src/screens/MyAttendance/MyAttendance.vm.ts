@@ -61,6 +61,7 @@ export function useMyAttendanceVM() {
   const [todayCheckOut, setTodayCheckOut] = useState<string | null>(null);
   const [alreadyPunchedIn, setAlreadyPunchedIn] = useState(false);
   const [outsideMessage, setOutsideMessage] = useState('');
+  const [isMarkedAbsent, setIsMarkedAbsent] = useState(false);
 
   // Fetch employee profile
   useEffect(() => {
@@ -94,14 +95,28 @@ export function useMyAttendanceVM() {
         const records = data?.records ?? [];
         const today = getTodayISO();
         const todayRecord = records.find((r: any) => r.date === today);
-        if (todayRecord && todayRecord.is_present) {
-          setAlreadyPunchedIn(true);
-          setTodayCheckIn(todayRecord.check_in);
-          setTodayCheckOut(todayRecord.check_out);
-          setPunchMode('punch-out');
+        
+        if (todayRecord) {
+          // Check if marked as absent
+          if (todayRecord.is_absent) {
+            setIsMarkedAbsent(true);
+            setAlreadyPunchedIn(false);
+            setPunchMode('punch-in');
+          } else if (todayRecord.is_present) {
+            setAlreadyPunchedIn(true);
+            setTodayCheckIn(todayRecord.check_in);
+            setTodayCheckOut(todayRecord.check_out);
+            setPunchMode('punch-out');
+            setIsMarkedAbsent(false);
+          } else {
+            setPunchMode('punch-in');
+            setAlreadyPunchedIn(false);
+            setIsMarkedAbsent(false);
+          }
         } else {
           setPunchMode('punch-in');
           setAlreadyPunchedIn(false);
+          setIsMarkedAbsent(false);
         }
       } catch (err) {
         console.error('[MyAttendance] History API error:', err);
@@ -248,5 +263,6 @@ export function useMyAttendanceVM() {
     confirmLabel: swipeLabel,
     fmtTimeStr,
     outsideMessage,
+    isMarkedAbsent,
   };
 }

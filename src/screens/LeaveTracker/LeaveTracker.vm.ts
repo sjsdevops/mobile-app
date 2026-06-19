@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Alert } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import {
     getLeaveSummary,
@@ -34,6 +35,13 @@ export function useLeaveTrackerVM() {
     }, [user?.id]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
+
+    // Refresh when screen comes back into focus (e.g., after applying leave)
+    useFocusEffect(
+        useCallback(() => {
+            fetchData();
+        }, [fetchData])
+    );
 
     // Refresh when switching to Leave Request tab
     useEffect(() => {

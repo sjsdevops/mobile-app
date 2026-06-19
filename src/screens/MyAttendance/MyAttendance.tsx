@@ -160,6 +160,21 @@ function HomeView({
         <Text style={styles.greetDate}>{vm.dateStr}</Text>
       </View>
 
+      {/* ── Absent Warning ── */}
+      {vm.isMarkedAbsent && (
+        <View style={styles.absentWarningCard}>
+          <View style={styles.absentWarningIcon}>
+            <Text style={styles.absentWarningIconText}>⚠️</Text>
+          </View>
+          <View style={styles.absentWarningContent}>
+            <Text style={styles.absentWarningTitle}>Marked as Absent</Text>
+            <Text style={styles.absentWarningText}>
+              Your attendance has been marked as absent for today. Please contact HR team for assistance.
+            </Text>
+          </View>
+        </View>
+      )}
+
       {/* ── Large clock ── */}
       <Text style={styles.greetClock}>{vm.clockStr}</Text>
 
@@ -184,7 +199,11 @@ function HomeView({
 
       {/* ── Swipe button ── */}
       <View style={styles.swipeSection}>
-        {vm.locLoading ? (
+        {vm.isMarkedAbsent ? (
+          <View style={[styles.swipeTrack, { width: SCREEN_W - 48, height: SWIPE_H, borderRadius: SWIPE_H / 2, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.neutral[300] }]}>
+            <Text style={styles.swipeText}>Contact HR to Mark Attendance</Text>
+          </View>
+        ) : vm.locLoading ? (
           <View style={[styles.swipeTrack, { width: SCREEN_W - 48, height: SWIPE_H, borderRadius: SWIPE_H / 2, justifyContent: 'center', flexDirection: 'row', gap: 10, alignItems: 'center' }]}>
             <ActivityIndicator color="#fff" size="small" />
             <Text style={styles.swipeText}>Getting location…</Text>
@@ -471,6 +490,37 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.85)',
     marginTop: 4,
+  },
+
+  // ── Absent Warning Card ──
+  absentWarningCard: {
+    backgroundColor: '#FEF3F2',
+    marginHorizontal: 20,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  absentWarningIcon: {
+    marginRight: 12,
+  },
+  absentWarningIconText: {
+    fontSize: 24,
+  },
+  absentWarningContent: {
+    flex: 1,
+  },
+  absentWarningTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.secondary[300],
+    marginBottom: 4,
+  },
+  absentWarningText: {
+    fontSize: 13,
+    color: '#B42318',
+    lineHeight: 18,
   },
 
   // ── Clock (below card) ──
