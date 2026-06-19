@@ -270,6 +270,8 @@ export function useAttendanceVM() {
     submitAttendance,
     loading,
     submitting,
+    classId,
+    sectionId,
     className,
     sectionName,
     canApproveAttendance,

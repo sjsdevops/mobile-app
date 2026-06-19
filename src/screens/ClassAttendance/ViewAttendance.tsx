@@ -155,41 +155,90 @@ export function ViewAttendance() {
         <View style={styles.statsRow}>
           <StatCard
             value={`${Math.round(vm.reportSummary.averageAttendance)}%`}
-            label="Attendance"
+            label={vm.isTeacherView ? "Average Attendance" : "Attendance"}
           />
-          <StatCard
-            value={`${vm.reportSummary.totalPresent}/${vm.reportSummary.totalDays}`}
-            label="Present / Total"
-          />
+          {vm.isTeacherView ? (
+            <StatCard
+              value={`${vm.reportSummary.absentToday}`}
+              label="Absent Today"
+            />
+          ) : (
+            <StatCard
+              value={`${vm.reportSummary.totalPresent}/${vm.reportSummary.totalDays}`}
+              label="Present / Total"
+            />
+          )}
         </View>
 
         {/* ── Weekly Overview bar chart ── */}
         <WeeklyChart data={vm.weeklyData} />
 
-        {/* ── Recent Records ── */}
-        <Text style={styles.needAttentionTitle}>Recent Records</Text>
-
-        <View style={styles.attentionList}>
-          {vm.recentRecords.slice(0, 10).map((record) => (
-            <View key={record.attendance_id || record.date} style={styles.attentionRow}>
-              <View style={[styles.avatar, { backgroundColor: record.is_present ? colors.green.alpha : colors.secondary.alpha }]}>
-                <Text style={[styles.avatarText, { color: record.is_present ? colors.green[200] : colors.secondary[300] }]}>
-                  {record.is_present ? '✓' : '✗'}
-                </Text>
-              </View>
-              <View style={styles.attentionInfo}>
-                <View style={styles.attentionNameRow}>
-                  <Text style={styles.attentionName}>
-                    {new Date(record.date).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' })}
-                  </Text>
-                  <Text style={[styles.attentionPct, { color: record.is_present ? colors.green[200] : colors.secondary[300] }]}>
-                    {record.is_present ? 'Present' : 'Absent'}
-                  </Text>
+        {/* ── Conditional Content Based on Role ── */}
+        {vm.isTeacherView ? (
+          <>
+            {/* Teacher View: Show students needing attention */}
+            {vm.lowAttendanceStudents.length > 0 && (
+              <>
+                <Text style={styles.needAttentionTitle}>Need Attention</Text>
+                <View style={styles.attentionList}>
+                  {vm.lowAttendanceStudents.map((student) => (
+                    <View key={student.id} style={styles.attentionRow}>
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>
+                          {student.name
+                            .split(' ')
+                            .map((w) => w[0])
+                            .slice(0, 2)
+                            .join('')}
+                        </Text>
+                      </View>
+                      <View style={styles.attentionInfo}>
+                        <View style={styles.attentionNameRow}>
+                          <Text style={styles.attentionName}>{student.name}</Text>
+                          <Text style={styles.attentionPct}>{student.percentage}%</Text>
+                        </View>
+                        <View style={styles.progressTrack}>
+                          <View
+                            style={[
+                              styles.progressFill,
+                              { width: `${student.percentage}%` },
+                            ]}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  ))}
                 </View>
-              </View>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Student View: Show recent records */}
+            <Text style={styles.needAttentionTitle}>Recent Records</Text>
+            <View style={styles.attentionList}>
+              {vm.recentRecords.slice(0, 10).map((record) => (
+                <View key={record.attendance_id || record.date} style={styles.attentionRow}>
+                  <View style={[styles.avatar, { backgroundColor: record.is_present ? colors.green.alpha : colors.secondary.alpha }]}>
+                    <Text style={[styles.avatarText, { color: record.is_present ? colors.green[200] : colors.secondary[300] }]}>
+                      {record.is_present ? '✓' : '✗'}
+                    </Text>
+                  </View>
+                  <View style={styles.attentionInfo}>
+                    <View style={styles.attentionNameRow}>
+                      <Text style={styles.attentionName}>
+                        {new Date(record.date).toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' })}
+                      </Text>
+                      <Text style={[styles.attentionPct, { color: record.is_present ? colors.green[200] : colors.secondary[300] }]}>
+                        {record.is_present ? 'Present' : 'Absent'}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+          </>
+        )}
       </ScrollView>
 
       {/* ── Export button (pinned at bottom) ── */}

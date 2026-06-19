@@ -623,7 +623,19 @@ export function ClassAttendance() {
 
       {vm.step === 1 && <StepMark vm={vm} />}
       {vm.step === 2 && <StepReview vm={vm} />}
-      {(vm.step === 3 || vm.step === 4) && <StepDone vm={vm} onDashboard={() => router.replace('/(tabs)')} onViewReport={() => router.push('/view-attendance')} />}
+      {(vm.step === 3 || vm.step === 4) && (
+        <StepDone 
+          vm={vm} 
+          onDashboard={() => router.replace('/(tabs)')} 
+          onViewReport={() => router.push({
+            pathname: '/view-attendance',
+            params: {
+              classId: vm.classId,
+              sectionId: vm.sectionId,
+            }
+          })} 
+        />
+      )}
     </SafeAreaView>
   );
 }
