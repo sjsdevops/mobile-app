@@ -24,6 +24,7 @@ import {
   EmptyWallet,
   BrifecaseTimer,
   People,
+  Sun1,
 } from 'iconsax-react-nativejs';
 import type { FC } from 'react';
 import type { IconProps } from 'iconsax-react-nativejs';
@@ -142,6 +143,7 @@ const CLASS_MANAGEMENT_ITEMS: GridItemData[] = [
   { id: 'homework', label: 'Homework', bg: colors.green.alpha, icon: NoteText, iconColor: colors.green[200] },
   { id: 'exams', label: 'Exams', bg: colors.purple.alpha, icon: TaskSquare, iconColor: colors.purple[300] },
   { id: 'case', label: 'Student Case Study', bg: colors.purple.alpha, icon: Teacher, iconColor: colors.purple[400] },
+  { id: 'holidays', label: 'Holidays', bg: colors.green.alpha, icon: Sun1, iconColor: colors.green[200] },
 ];
 
 const WORKSPACE_ITEMS: GridItemData[] = [
@@ -455,7 +457,8 @@ export function StudentDashboardScreen() {
                       item.id === 'homework' ? () => router.push('/homework') :
                         item.id === 'exams' ? () => router.push('/student-exam-results') :
                           item.id === 'case' ? () => router.push('/case-study') :
-                            undefined
+                            item.id === 'holidays' ? () => router.push('/holidays') :
+                              undefined
               }
             />
           ))}

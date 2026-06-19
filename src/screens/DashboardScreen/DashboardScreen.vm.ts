@@ -15,6 +15,7 @@ const CARD_PERMISSION_MAP: Record<string, string> = {
     myattendance: 'mobile_my_attendance',
     payroll: 'mobile_payroll',
     leave: 'mobile_leave_tracker',
+    holidays: 'mobile_holidays',
 };
 
 export interface AssignedClassCard {

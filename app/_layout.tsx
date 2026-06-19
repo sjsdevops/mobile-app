@@ -39,6 +39,7 @@ export default function RootLayout() {
               <Stack.Screen name="apply-leave" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="payroll" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="payroll-detail" options={{ headerShown: false, animation: 'slide_from_right' }} />
+              <Stack.Screen name="holidays" options={{ headerShown: false, animation: 'slide_from_right' }} />
             </Stack>
           </ThemeProvider>
         </AuthProvider>

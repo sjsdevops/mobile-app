@@ -88,6 +88,30 @@ export async function sendTokenToBackend(userId: string, pushToken: string): Pro
 }
 
 /**
+ * Invalidate the device push token on logout.
+ *
+ * This is the Expo equivalent of Flutter's FirebaseMessaging.instance.deleteToken().
+ * It works entirely client-side — no backend endpoint needed.
+ *
+ * After this call FCM/APNs marks the token as invalid. Any future send attempt
+ * to the old token will return NotRegistered / BadDeviceToken from FCM/APNs,
+ * so the Expo push service will stop delivering to it automatically.
+ *
+ * A fresh token is issued the next time the user logs in and
+ * registerForPushNotifications() is called.
+ */
+export async function unregisterPushNotifications(): Promise<void> {
+    try {
+        await Notifications.unregisterForNotificationsAsync();
+        console.log('[Push] Device push token invalidated (FCM/APNs side)');
+    } catch (error) {
+        // Non-fatal — only fails on simulators or when notifications were
+        // never granted, same as Flutter's deleteToken() in those cases.
+        console.warn('[Push] Could not invalidate push token:', error);
+    }
+}
+
+/**
  * Add a listener for when a notification is received while app is foregrounded.
  */
 export function addNotificationReceivedListener(

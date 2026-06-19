@@ -1,6 +1,7 @@
 import { api, setAuthToken } from './api';
 import { saveAuthToken, saveRefreshToken, saveUser, savePermissions, clearAuthData } from './storage';
 import type { LoginRequest, LoginResponse, AuthUser, UserRole, RolePermission } from '../types/auth';
+import { unregisterPushNotifications } from './pushNotifications';
 
 function mapLoginResponse(data: LoginResponse): AuthUser {
   const rawUser = data.user;
@@ -63,6 +64,9 @@ export async function getRolePermissions(roleId: string): Promise<RolePermission
 }
 
 export async function logout(): Promise<void> {
+  // Invalidate the FCM/APNs token client-side before wiping local state.
+  // No backend call needed — same as Flutter's FirebaseMessaging.deleteToken().
+  await unregisterPushNotifications();
   setAuthToken(null);
   await clearAuthData();
 }

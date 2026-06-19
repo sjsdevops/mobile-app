@@ -70,6 +70,46 @@ export async function getLeaveRequests(employeeId: string): Promise<LeaveRequest
     return data?.items ?? [];
 }
 
+// ─── Holiday Types & API ──────────────────────────────────────────────────────
+
+export interface Holiday {
+    holiday_id: string;
+    name: string;
+    holiday_date: string; // YYYY-MM-DD
+    description: string | null;
+    created_by: string;
+    modified_by: string;
+    created_at: string;
+    modified_at: string;
+}
+
+export interface HolidayListResponse {
+    total: number;
+    skip: number;
+    limit: number;
+    items: Holiday[];
+}
+
+export async function getHolidays(params?: {
+    from_date?: string;
+    skip?: number;
+    limit?: number;
+}): Promise<HolidayListResponse> {
+    const qs = new URLSearchParams();
+    if (params?.from_date) qs.set('from_date', params.from_date);
+    if (params?.skip !== undefined) qs.set('skip', String(params.skip));
+    qs.set('limit', String(params?.limit ?? 100));
+
+    const response = await api.get(`/holidays?${qs.toString()}`);
+    const data = response.data?.data ?? response.data;
+    return {
+        total: data?.total ?? 0,
+        skip: data?.skip ?? 0,
+        limit: data?.limit ?? 100,
+        items: data?.items ?? [],
+    };
+}
+
 export async function applyLeave(payload: {
     employee_id: string;
     leave_type_id: string;
