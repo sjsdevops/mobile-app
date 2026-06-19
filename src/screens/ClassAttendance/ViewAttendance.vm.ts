@@ -88,28 +88,51 @@ export function useViewAttendanceVM() {
 
     // Set summary data
     setAverageAttendance(weeklyData.average_attendance_percentage || 0);
-    setAbsentToday(weeklyData.end_date_absent_count || 0);
+    setAbsentToday(weeklyData.today_absent_count || 0);
     setClassName(`Class ${classId}-${sectionId}`);
 
-    // Build weekly chart data - show class average for each day
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    // Build weekly chart data from daily_summary
     const chartData: WeekDay[] = [];
     
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dayName = days[d.getDay()];
+    if (weeklyData.daily_summary && weeklyData.daily_summary.length > 0) {
+      // Use actual daily summary data from API
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       
-      // For simplicity, show average attendance as bar height
-      // You can enhance this by fetching daily breakdown if available
-      const avgPresent = weeklyData.average_attendance_percentage || 0;
-      
-      chartData.push({
-        day: dayName,
-        present: avgPresent,
-        absent: 100 - avgPresent,
+      weeklyData.daily_summary.forEach((daySummary) => {
+        const date = new Date(daySummary.date);
+        const dayName = days[date.getDay()];
+        
+        // Calculate percentages based on total students
+        const presentPercent = daySummary.total_students > 0 
+          ? (daySummary.present_count / daySummary.total_students) * 100 
+          : 0;
+        const absentPercent = daySummary.total_students > 0 
+          ? (daySummary.absent_count / daySummary.total_students) * 100 
+          : 0;
+        
+        chartData.push({
+          day: dayName,
+          present: Math.round(presentPercent),
+          absent: Math.round(absentPercent),
+        });
       });
+    } else {
+      // Fallback: generate days with average
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dayName = days[d.getDay()];
+        const avgPresent = weeklyData.average_attendance_percentage || 0;
+        
+        chartData.push({
+          day: dayName,
+          present: avgPresent,
+          absent: 100 - avgPresent,
+        });
+      }
     }
+    
     setWeeklyData(chartData);
 
     // Find students with low attendance (below 75%)

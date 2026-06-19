@@ -140,9 +140,9 @@ export function ViewAttendance() {
           <Text style={styles.headerSub}>{vm.reportSummary.weekLabel}</Text>
         </View>
 
-        <TouchableOpacity style={styles.circleBtn} activeOpacity={0.7}>
+        {/* <TouchableOpacity style={styles.circleBtn} activeOpacity={0.7}>
           <DocumentDownload color={colors.neutral[800]} size={20} variant="Linear" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       <View style={styles.divider} />
@@ -241,16 +241,6 @@ export function ViewAttendance() {
         )}
       </ScrollView>
 
-      {/* ── Export button (pinned at bottom) ── */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.exportBtn}
-          activeOpacity={0.85}
-          onPress={() => Alert.alert('Export', 'Full report exported!')}
-        >
-          <Text style={styles.exportBtnText}>Export Full Report</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }

@@ -48,7 +48,7 @@ export function useStudentsVM() {
 
         for (const cls of classes) {
           for (const section of cls.sections ?? []) {
-            if (section.class_teacher?.employee_id === user.id) {
+            if (section.class_teacher?.employee_id === user.id || section.coordinator?.employee_id === user.id) {
               sectionTabs.push({
                 label: `${cls.class_name} - ${section.section_name}`,
                 classId: cls.class_id,

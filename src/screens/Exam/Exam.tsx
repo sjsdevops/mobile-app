@@ -568,6 +568,7 @@ function PreviewSubmission({ vm }: { vm: ReturnType<typeof useExamVM> }) {
 
 function SubmittedView({ vm }: { vm: ReturnType<typeof useExamVM> }) {
   const exam = vm.selectedExam!;
+  const router = useRouter();
 
   return (
     <SafeAreaView style={[styles.safe, doneStyles.safe]} edges={['top']}>
@@ -614,6 +615,10 @@ function SubmittedView({ vm }: { vm: ReturnType<typeof useExamVM> }) {
 
         <TouchableOpacity
           style={[styles.outlineBtn, doneStyles.btn]}
+          onPress={() => router.push({
+            pathname: '/teacher-exam-report',
+            params: { examSubjectId: exam.examSubjectId }
+          })}
           activeOpacity={0.8}
         >
           <Text style={styles.outlineBtnText}>View Report</Text>

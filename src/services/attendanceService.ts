@@ -47,6 +47,16 @@ export interface WeeklyStudentRecord {
     attendance_percentage: number;
 }
 
+export interface DailySummary {
+    date: string;
+    day: string;
+    present_count: number;
+    absent_count: number;
+    not_marked_count: number;
+    total_students: number;
+    attendance_percentage: number;
+}
+
 export interface WeeklyAttendanceResponse {
     class_id: string;
     section_id: string;
@@ -56,6 +66,8 @@ export interface WeeklyAttendanceResponse {
     total_students: number;
     average_attendance_percentage: number;
     end_date_absent_count: number;
+    today_absent_count?: number;
+    daily_summary?: DailySummary[];
     students: WeeklyStudentRecord[];
 }
 

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Jayam 360",
     "slug": "school-erp-mobile-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "scheme": "schoolerp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
