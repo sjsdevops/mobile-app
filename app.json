@@ -17,6 +17,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.sreejayam.schoolerp",
       "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Jayam 360 uses your location to verify and record attendance at your school.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Jayam 360 uses your location to verify and record attendance at your school.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
           "NSAllowsLocalNetworking": true,
@@ -52,6 +54,12 @@
       "expo-router",
       "@react-native-community/datetimepicker",
       "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Jayam 360 uses your location to verify and record attendance at your school."
+        }
+      ],
       [
         "expo-build-properties",
         {
