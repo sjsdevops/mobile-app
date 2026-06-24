@@ -176,10 +176,21 @@ export async function getStudentAttendanceReport(studentId: string): Promise<Stu
 }
 
 /** 7. Mark employee self attendance */
-export async function markEmployeeSelfAttendance(payload: MarkEmployeeSelfPayload): Promise<string> {
+export interface MarkEmployeeSelfResponse {
+    employee_id: string;
+    date: string;
+    status: string;
+    location: string | null;
+    shift_start: string | null;
+    is_late: boolean | null;
+    late_by_minutes: number | null;
+    action: string;
+}
+
+export async function markEmployeeSelfAttendance(payload: MarkEmployeeSelfPayload): Promise<MarkEmployeeSelfResponse> {
     const response = await api.post('/mobile/attendance/employees/self', payload);
     const data = response.data?.data ?? response.data;
-    return typeof data === 'string' ? data : 'Attendance marked successfully';
+    return data;
 }
 
 /** 8. Get employee attendance history */

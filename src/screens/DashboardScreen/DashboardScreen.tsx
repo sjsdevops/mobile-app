@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Notification1,
   Calendar1,
@@ -361,12 +361,28 @@ export function StudentDashboardScreen() {
   const themeColors = useThemeColors();
   const { user } = useAuth();
   const caseVm = useStudentCaseStudiesVM(user?.id);
-
-  const nextClass = useMemo(() => {
-    return getNextClass();
-  }, []);
+  const [profile, setProfile] = useState<import('../../services/profileService').StudentProfile | null>(null);
 
   const displayName = user?.firstName || 'Student';
+
+  // Fetch student profile for real data
+  useEffect(() => {
+    if (!user?.id) return;
+    import('../../services/profileService').then(({ getStudentProfile }) => {
+      getStudentProfile(user.id).then(setProfile).catch(console.error);
+    });
+  }, [user?.id]);
+
+  const classTeacherName = profile?.class_teacher
+    ? `${profile.class_teacher.first_name} ${profile.class_teacher.last_name}`.trim()
+    : '—';
+  const className = profile?.academic_info
+    ? `${profile.academic_info.class_name} - ${profile.academic_info.section_name}`
+    : '—';
+  const rollNo = profile?.academic_info?.roll_no ?? '—';
+  const attendancePct = profile?.attendance_percentage != null
+    ? `${Math.round(profile.attendance_percentage)}%`
+    : '—';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -394,16 +410,16 @@ export function StudentDashboardScreen() {
           <View style={styles.classCardDecorCircle} />
           <View style={styles.classCardDecorCircle2} />
           <Text style={styles.classCardTag}>CLASS TEACHER</Text>
-          <Text style={styles.classCardName}>Shikha</Text>
-          <Text style={styles.classCardSubject}>CLASS 8-B</Text>
+          <Text style={styles.classCardName}>{classTeacherName}</Text>
+          <Text style={styles.classCardSubject}>{className}</Text>
           <View style={styles.classCardStats}>
             <View>
-              <Text style={styles.classCardStatValue}>34</Text>
+              <Text style={styles.classCardStatValue}>{rollNo}</Text>
               <Text style={styles.classCardStatLabel}>Roll No</Text>
             </View>
             <View style={styles.classCardStatDivider} />
             <View>
-              <Text style={styles.classCardStatValue}>92%</Text>
+              <Text style={styles.classCardStatValue}>{attendancePct}</Text>
               <Text style={styles.classCardStatLabel}>Avg. Attendance</Text>
             </View>
           </View>
@@ -513,6 +529,7 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 20,
     paddingTop: 4,
+    paddingBottom: 100,
   },
 
   caseLoading: {

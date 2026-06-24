@@ -53,8 +53,6 @@ export function useMyAttendanceVM() {
 
   const [employeeName, setEmployeeName] = useState('');
   const [shiftDisplay, setShiftDisplay] = useState('');
-  const [shiftStartHour, setShiftStartHour] = useState(9);
-  const [shiftStartMinute, setShiftStartMinute] = useState(0);
 
   const [punchMode, setPunchMode] = useState<PunchMode>('punch-in');
   const [todayCheckIn, setTodayCheckIn] = useState<string | null>(null);
@@ -73,11 +71,6 @@ export function useMyAttendanceVM() {
         setEmployeeName(`${p.first_name || ''} ${p.last_name || ''}`.trim());
         if (p.work_details?.shift_time) {
           setShiftDisplay(p.work_details.shift_time);
-          const match = p.work_details.shift_time.match(/(\d{1,2}):(\d{2})/);
-          if (match) {
-            setShiftStartHour(parseInt(match[1]));
-            setShiftStartMinute(parseInt(match[2]));
-          }
         }
       } catch (err) {
         console.error('[MyAttendance] Profile API error:', err);
@@ -95,7 +88,7 @@ export function useMyAttendanceVM() {
         const records = data?.records ?? [];
         const today = getTodayISO();
         const todayRecord = records.find((r: any) => r.date === today);
-        
+
         if (todayRecord) {
           // Check if marked as absent
           if (todayRecord.is_absent) {
@@ -145,7 +138,7 @@ export function useMyAttendanceVM() {
     } catch { return '--:--'; }
   }
 
-  // Swipe → get GPS → call API → backend validates campus
+  // Swipe → get GPS → call API → backend validates campus + late
   async function onSwipePunchIn() {
     if (!userId) return;
 
@@ -154,16 +147,14 @@ export function useMyAttendanceVM() {
     const location = await getCurrentLocation();
     setLocLoading(false);
 
-    // Step 2: Call API (backend validates campus radius)
+    // Step 2: Call API (backend validates campus radius + detects late)
     const t = new Date();
     setPunchTime(t);
     setSubmitting(true);
 
     try {
       if (punchMode === 'punch-in') {
-        const lateBy = (t.getHours() - shiftStartHour) * 60 + (t.getMinutes() - shiftStartMinute);
-
-        await markEmployeeSelfAttendance({
+        const result = await markEmployeeSelfAttendance({
           date: getTodayISO(),
           is_present: true,
           is_absent: false,
@@ -177,8 +168,9 @@ export function useMyAttendanceVM() {
         setTodayCheckIn(toLocalISO(t));
         setPunchMode('punch-out');
 
-        if (lateBy > 0) {
-          setLateMinutes(lateBy);
+        // Backend determines late — use response fields
+        if (result.is_late) {
+          setLateMinutes(result.late_by_minutes ?? 0);
           setPunchStatus('late');
           setView('late');
         } else {
@@ -217,8 +209,6 @@ export function useMyAttendanceVM() {
 
   const SHIFT = {
     display: shiftDisplay || 'Not set',
-    startHour: shiftStartHour,
-    startMinute: shiftStartMinute,
   };
 
   const statusTitle = alreadyPunchedIn
