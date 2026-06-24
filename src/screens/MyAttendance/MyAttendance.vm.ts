@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import * as Location from 'expo-location';
 import { api } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -60,6 +61,7 @@ export function useMyAttendanceVM() {
   const [alreadyPunchedIn, setAlreadyPunchedIn] = useState(false);
   const [outsideMessage, setOutsideMessage] = useState('');
   const [isMarkedAbsent, setIsMarkedAbsent] = useState(false);
+  const [swipeResetKey, setSwipeResetKey] = useState(0);
 
   // Fetch employee profile
   useEffect(() => {
@@ -142,6 +144,49 @@ export function useMyAttendanceVM() {
   async function onSwipePunchIn() {
     if (!userId) return;
 
+    // Check if punching out before 8 hours
+    if (punchMode === 'punch-out' && todayCheckIn) {
+      const checkInTime = new Date(todayCheckIn);
+      const now = new Date();
+      const hoursWorked = (now.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
+
+      if (hoursWorked < 8) {
+        // Show confirmation alert
+        Alert.alert(
+          'Early Punch Out',
+          `You have worked ${hoursWorked.toFixed(1)} hours. Are you sure you want to punch out before the end of the day?`,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => {
+                // Force swipe button to reset by changing the key
+                setSwipeResetKey((prev) => prev + 1);
+              },
+            },
+            {
+              text: 'Yes, Punch Out',
+              style: 'destructive',
+              onPress: () => performPunchOut(),
+            },
+          ],
+          { cancelable: true }
+        );
+        return;
+      }
+    }
+
+    // Continue with normal punch in/out flow
+    if (punchMode === 'punch-out') {
+      await performPunchOut();
+    } else {
+      await performPunchIn();
+    }
+  }
+
+  async function performPunchIn() {
+    if (!userId) return;
+
     // Step 1: Get GPS
     setLocLoading(true);
     const location = await getCurrentLocation();
@@ -153,49 +198,68 @@ export function useMyAttendanceVM() {
     setSubmitting(true);
 
     try {
-      if (punchMode === 'punch-in') {
-        const result = await markEmployeeSelfAttendance({
-          date: getTodayISO(),
-          is_present: true,
-          is_absent: false,
-          check_in: toLocalISO(t),
-          location,
-          created_by: userId,
-          modified_by: userId,
-        });
+      const result = await markEmployeeSelfAttendance({
+        date: getTodayISO(),
+        is_present: true,
+        is_absent: false,
+        check_in: toLocalISO(t),
+        location,
+        created_by: userId,
+        modified_by: userId,
+      });
 
-        setAlreadyPunchedIn(true);
-        setTodayCheckIn(toLocalISO(t));
-        setPunchMode('punch-out');
+      setAlreadyPunchedIn(true);
+      setTodayCheckIn(toLocalISO(t));
+      setPunchMode('punch-out');
 
-        // Backend determines late — use response fields
-        if (result.is_late) {
-          setLateMinutes(result.late_by_minutes ?? 0);
-          setPunchStatus('late');
-          setView('late');
-        } else {
-          setPunchStatus('on-time');
-          setView('success');
-        }
+      // Backend determines late — use response fields
+      if (result.is_late) {
+        setLateMinutes(result.late_by_minutes ?? 0);
+        setPunchStatus('late');
+        setView('late');
       } else {
-        // Punch OUT
-        await markEmployeeSelfAttendance({
-          date: getTodayISO(),
-          is_present: true,
-          is_absent: false,
-          check_in: todayCheckIn || toLocalISO(t),
-          check_out: toLocalISO(t),
-          location,
-          created_by: userId,
-          modified_by: userId,
-        });
-
-        setTodayCheckOut(toLocalISO(t));
         setPunchStatus('on-time');
         setView('success');
       }
     } catch (e: any) {
       // Backend error (e.g. "You are 600m away from campus")
+      const msg = e?.response?.data?.detail || 'Failed to mark attendance';
+      setOutsideMessage(msg);
+      setView('outside');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function performPunchOut() {
+    if (!userId) return;
+
+    // Step 1: Get GPS
+    setLocLoading(true);
+    const location = await getCurrentLocation();
+    setLocLoading(false);
+
+    // Step 2: Call API
+    const t = new Date();
+    setPunchTime(t);
+    setSubmitting(true);
+
+    try {
+      await markEmployeeSelfAttendance({
+        date: getTodayISO(),
+        is_present: true,
+        is_absent: false,
+        check_in: todayCheckIn || toLocalISO(t),
+        check_out: toLocalISO(t),
+        location,
+        created_by: userId,
+        modified_by: userId,
+      });
+
+      setTodayCheckOut(toLocalISO(t));
+      setPunchStatus('on-time');
+      setView('success');
+    } catch (e: any) {
       const msg = e?.response?.data?.detail || 'Failed to mark attendance';
       setOutsideMessage(msg);
       setView('outside');
@@ -254,5 +318,6 @@ export function useMyAttendanceVM() {
     fmtTimeStr,
     outsideMessage,
     isMarkedAbsent,
+    swipeResetKey,
   };
 }

@@ -213,7 +213,7 @@ function HomeView({
             <Text style={styles.swipeText}>✓ Attendance Complete</Text>
           </View>
         ) : (
-          <SwipePunchButton onComplete={vm.onSwipePunchIn} label={vm.swipeLabel} />
+          <SwipePunchButton key={vm.swipeResetKey} onComplete={vm.onSwipePunchIn} label={vm.swipeLabel} />
         )}
       </View>
       <View style={{ height: 32 }} />
@@ -281,7 +281,9 @@ function LateEntryView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> }) {
         <View style={styles.infoCardDivider} />
         <InfoRow
           label="Late By"
-          value={`${vm.lateMinutes} min${vm.lateMinutes !== 1 ? 's' : ''}`}
+          value={vm.lateMinutes >= 60 
+            ? `${Math.floor(vm.lateMinutes / 60)} hr${Math.floor(vm.lateMinutes / 60) !== 1 ? 's' : ''} ${vm.lateMinutes % 60} min${vm.lateMinutes % 60 !== 1 ? 's' : ''}`
+            : `${vm.lateMinutes} min${vm.lateMinutes !== 1 ? 's' : ''}`}
           valueColor={colors.secondary[300]}
         />
       </View>
@@ -289,7 +291,7 @@ function LateEntryView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> }) {
       <View style={styles.flex} />
 
       <TouchableOpacity
-        style={[styles.primaryBtn, { marginHorizontal: 24, marginBottom: 32 }]}
+        style={[styles.primaryBtn, styles.fullWidthBtn]}
         onPress={vm.onAcknowledgeLate}
         activeOpacity={0.85}
       >
@@ -309,6 +311,12 @@ function SuccessView({
   vm: ReturnType<typeof useMyAttendanceVM>;
   onGoToDashboard: () => void;
 }) {
+  const isCheckOut = vm.punchMode === 'punch-out' && vm.todayCheckOut;
+  const successTitle = isCheckOut ? 'Punch Out Successful!' : 'Punch In Successful!';
+  const successMessage = isCheckOut 
+    ? 'Your punch out has been recorded successfully.' 
+    : 'Your attendance has been recorded successfully.';
+
   return (
     <View style={[styles.flex, styles.centeredView]}>
       {/* Illustration: Calendar with tick badge */}
@@ -319,8 +327,8 @@ function SuccessView({
         </View>
       </View>
 
-      <Text style={styles.viewTitle}>Punch In Successful!</Text>
-      <Text style={styles.viewSubtitle}>Your attendance has been recorded successfully.</Text>
+      <Text style={styles.viewTitle}>{successTitle}</Text>
+      <Text style={styles.viewSubtitle}>{successMessage}</Text>
 
       {/* Summary card */}
       <View style={styles.infoCard}>
