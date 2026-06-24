@@ -144,6 +144,7 @@ const CLASS_MANAGEMENT_ITEMS: GridItemData[] = [
   { id: 'exams', label: 'Exams', bg: colors.purple.alpha, icon: TaskSquare, iconColor: colors.purple[300] },
   { id: 'case', label: 'Student Case Study', bg: colors.purple.alpha, icon: Teacher, iconColor: colors.purple[400] },
   { id: 'holidays', label: 'Holidays', bg: colors.green.alpha, icon: Sun1, iconColor: colors.green[200] },
+  { id: 'library', label: 'Library', bg: colors.primary.alpha, icon: Book1, iconColor: colors.primary[300] },
 ];
 
 const WORKSPACE_ITEMS: GridItemData[] = [
@@ -321,7 +322,10 @@ export function DashboardScreen() {
                         item.id === 'attendance' ? () => router.push('/select-section') :
                           item.id === 'homework' ? () => router.push('/homework') :
                             item.id === 'exams' ? () => router.push('/(tabs)/exams') :
-                              undefined
+                              item.id === 'case' ? () => router.push('/case-study') :
+                                item.id === 'holidays' ? () => router.push('/holidays') :
+                                  item.id === 'library' ? () => router.push('/library') :
+                                    undefined
                   }
                 />
               ))}
@@ -474,7 +478,8 @@ export function StudentDashboardScreen() {
                         item.id === 'exams' ? () => router.push('/student-exam-results') :
                           item.id === 'case' ? () => router.push('/case-study') :
                             item.id === 'holidays' ? () => router.push('/holidays') :
-                              undefined
+                              item.id === 'library' ? () => router.push('/library') :
+                                undefined
               }
             />
           ))}

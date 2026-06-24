@@ -16,6 +16,7 @@ const CARD_PERMISSION_MAP: Record<string, string> = {
     payroll: 'mobile_payroll',
     leave: 'mobile_leave_tracker',
     holidays: 'mobile_holidays',
+    library: 'mobile_library',
 };
 
 export interface AssignedClassCard {
@@ -68,7 +69,7 @@ export function useDashboardVM() {
 
     // Filter class management cards based on permissions
     const visibleClassManagementIds = useMemo(() => {
-        const allIds = ['timetable', 'lesson', 'attendance', 'homework', 'exams', 'case'];
+        const allIds = ['timetable', 'lesson', 'attendance', 'homework', 'exams', 'case', 'holidays', 'library'];
 
         if (permissions.length === 0) return [];
 
