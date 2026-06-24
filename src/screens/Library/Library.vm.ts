@@ -32,7 +32,6 @@ export function useLibraryVM() {
     const loadRequests = useCallback(async () => {
         if (!userId) return;
         try {
-            // Load all statuses for history
             const data = await getMyRequests(userId, userType);
             setRequests(data);
         } catch (e) {

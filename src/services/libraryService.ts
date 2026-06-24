@@ -55,18 +55,13 @@ export async function getLibraryBooks(search?: string): Promise<LibraryBook[]> {
 export async function getMyRequests(
     userId: string,
     userType: 'student' | 'employee',
-    status?: string,
 ): Promise<LibraryRequest[]> {
-    const params = new URLSearchParams();
-    if (status) params.set('status', status);
-    const query = params.toString() ? `?${params.toString()}` : '';
-    const response = await api.get(`/library/requests${query}`);
+    const endpoint = userType === 'student'
+        ? `/library/history/student/${userId}`
+        : `/library/history/employee/${userId}`;
+    const response = await api.get(endpoint);
     const data = response.data?.data ?? response.data;
-    const all: LibraryRequest[] = Array.isArray(data) ? data : [];
-    // Filter to only this user's requests
-    return all.filter((r) =>
-        userType === 'student' ? r.student_id === userId : r.employee_id === userId
-    );
+    return Array.isArray(data) ? data : [];
 }
 
 export async function createBookRequest(payload: {
