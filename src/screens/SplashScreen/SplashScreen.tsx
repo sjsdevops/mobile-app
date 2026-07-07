@@ -93,7 +93,7 @@ export function SplashScreen() {
 
       {/* Version */}
       <Animated.View style={[styles.versionContainer, { opacity: versionOpacity }]}>
-        <Text style={styles.versionText}>Version 1.0.2</Text>
+        <Text style={styles.versionText}>Version 1.0.4</Text>
       </Animated.View>
     </Animated.View>
   );

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Jayam 360",
+    "name": "SJS",
     "slug": "school-erp-mobile-app",
     "version": "1.0.4",
     "scheme": "schoolerp",
@@ -23,7 +23,7 @@
           "NSAllowsArbitraryLoads": false,
           "NSAllowsLocalNetworking": true,
           "NSExceptionDomains": {
-            "leq3n23ynou6mjfaxg0v5tw9.82.29.165.177.sslip.io": {
+            "v96mgdvexgzpl53su6fj448y.82.29.165.177.sslip.io": {
               "NSExceptionAllowsInsecureHTTPLoads": true,
               "NSIncludesSubdomains": true
             }
