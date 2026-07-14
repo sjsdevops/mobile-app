@@ -236,7 +236,7 @@ function OutsideCampusView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> })
 
       <View style={styles.outsideBtnGroup}>
         <TouchableOpacity
-          style={[styles.primaryBtn, { width: '100%' }]}
+          style={[styles.primaryBtn]}
           onPress={vm.onRetryLocation}
           activeOpacity={0.85}
           disabled={vm.locLoading}
@@ -247,7 +247,7 @@ function OutsideCampusView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> })
           <Text style={styles.primaryBtnText}>Retry</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.ghostBtn, { width: '100%', alignItems: 'center' }]}
+          style={[styles.ghostBtn, {alignItems: 'center' }]}
           onPress={vm.goHome}
           activeOpacity={0.7}
         >
@@ -785,10 +785,9 @@ const styles = StyleSheet.create({
   outsideBtnGroup: {
     flexDirection: 'column',
     gap: 12,
-    marginHorizontal: 24,
+    paddingHorizontal: 24,
     marginBottom: 32,
-    alignItems: 'center',
-    width: '100%',
+    alignSelf: 'stretch',
   },
   ghostBtn: {
     paddingVertical: 14,

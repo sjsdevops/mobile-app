@@ -1,7 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://v96mgdvexgzpl53su6fj448y.82.29.165.177.sslip.io';
+const BASE_URL = 'http://leq3n23ynou6mjfaxg0v5tw9.82.29.165.177.sslip.io';
 
 export const api = axios.create({
   baseURL: BASE_URL,
