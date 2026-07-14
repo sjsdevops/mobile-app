@@ -1,14 +1,14 @@
 import { GluestackUIProvider } from '@gluestack-ui/themed';
 import { config } from '@gluestack-ui/config';
 import { Stack } from 'expo-router';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import '../global.css';
 import { AuthProvider } from '../src/contexts/AuthContext';
 import { ThemeProvider } from '../src/theme/ThemeContext';
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <GluestackUIProvider config={config}>
         <AuthProvider>
           <ThemeProvider>

@@ -24,7 +24,13 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: themeColors.primary[300],
         tabBarInactiveTintColor: colors.neutral[500],
-        tabBarStyle: [styles.tabBar, { height: 60 + insets.bottom, paddingBottom: Math.max(insets.bottom, 12) + 6 }],
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: 60 + insets.bottom,
+            paddingBottom: insets.bottom,
+          },
+        ],
         tabBarLabelStyle: styles.tabLabel,
       }}
     >

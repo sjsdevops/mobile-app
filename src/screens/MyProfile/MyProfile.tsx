@@ -138,8 +138,13 @@ export function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>PERSONAL INFORMATION</Text>
         <View style={styles.infoCard}>
-          {profile.personalInfo.map((item) => (
-            <InfoRow key={item.label} label={item.label} value={item.value} />
+          {profile.personalInfo.map((item, index) => (
+            <React.Fragment key={item.label}>
+              <InfoRow label={item.label} value={item.value} />
+              {index < profile.personalInfo.length - 1 && (
+                <View style={styles.divider} />
+              )}
+            </React.Fragment>
           ))}
         </View>
 
@@ -263,23 +268,28 @@ const styles = StyleSheet.create({
   infoCard: {
     borderRadius: 24,
     backgroundColor: '#fff',
-    paddingVertical: 12,
+    paddingVertical: 4,
     paddingHorizontal: 18,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: 14,
+    gap: 12,
   },
   infoLabel: {
     fontSize: 13,
     color: colors.neutral[600],
+    flex: 1,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.neutral[900],
+    flex: 1,
+    textAlign: 'right',
+    flexWrap: 'wrap',
   },
   settingsCard: {
     borderRadius: 24,
@@ -314,6 +324,11 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
     color: colors.neutral[500],
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.neutral[100],
+    marginHorizontal: 2,
   },
   logoutButton: {
     marginTop: 12,

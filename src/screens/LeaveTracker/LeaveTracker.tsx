@@ -222,7 +222,7 @@ const s = StyleSheet.create({
     safe: { flex: 1, backgroundColor: colors.surface.light },
     center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
-    tabRow: { maxHeight: 52 },
+    tabRow: { height: 56, flexShrink: 0, flexGrow: 0, backgroundColor: colors.surface.light },
     tabContent: { paddingHorizontal: 16, paddingVertical: 10, gap: 12, alignItems: 'center' },
     tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(20,79,204,0.1)' },
     tabActive: { backgroundColor: colors.primary[300], borderColor: colors.primary[300] },

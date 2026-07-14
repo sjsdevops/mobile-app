@@ -236,7 +236,7 @@ function OutsideCampusView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> })
 
       <View style={styles.outsideBtnGroup}>
         <TouchableOpacity
-          style={[styles.primaryBtn, styles.flex]}
+          style={[styles.primaryBtn, { width: '100%' }]}
           onPress={vm.onRetryLocation}
           activeOpacity={0.85}
           disabled={vm.locLoading}
@@ -247,7 +247,7 @@ function OutsideCampusView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> })
           <Text style={styles.primaryBtnText}>Retry</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.ghostBtn}
+          style={[styles.ghostBtn, { width: '100%', alignItems: 'center' }]}
           onPress={vm.goHome}
           activeOpacity={0.7}
         >
@@ -281,7 +281,7 @@ function LateEntryView({ vm }: { vm: ReturnType<typeof useMyAttendanceVM> }) {
         <View style={styles.infoCardDivider} />
         <InfoRow
           label="Late By"
-          value={vm.lateMinutes >= 60 
+          value={vm.lateMinutes >= 60
             ? `${Math.floor(vm.lateMinutes / 60)} hr${Math.floor(vm.lateMinutes / 60) !== 1 ? 's' : ''} ${vm.lateMinutes % 60} min${vm.lateMinutes % 60 !== 1 ? 's' : ''}`
             : `${vm.lateMinutes} min${vm.lateMinutes !== 1 ? 's' : ''}`}
           valueColor={colors.secondary[300]}
@@ -313,8 +313,8 @@ function SuccessView({
 }) {
   const isCheckOut = vm.punchMode === 'punch-out' && vm.todayCheckOut;
   const successTitle = isCheckOut ? 'Punch Out Successful!' : 'Punch In Successful!';
-  const successMessage = isCheckOut 
-    ? 'Your punch out has been recorded successfully.' 
+  const successMessage = isCheckOut
+    ? 'Your punch out has been recorded successfully.'
     : 'Your attendance has been recorded successfully.';
 
   return (
@@ -783,11 +783,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   outsideBtnGroup: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 12,
     marginHorizontal: 24,
     marginBottom: 32,
     alignItems: 'center',
+    width: '100%',
   },
   ghostBtn: {
     paddingVertical: 14,

@@ -32,6 +32,11 @@ function toLocalISO(d: Date): string {
 
 async function getCurrentLocation(): Promise<string | undefined> {
   try {
+    // Check if location services are enabled on the device
+    const enabled = await Location.hasServicesEnabledAsync();
+    if (!enabled) {
+      return null as any; // signal: services off
+    }
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return undefined;
     const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -143,6 +148,36 @@ export function useMyAttendanceVM() {
   // Swipe → get GPS → call API → backend validates campus + late
   async function onSwipePunchIn() {
     if (!userId) return;
+
+    // Check if location services are enabled before proceeding
+    try {
+      const locationEnabled = await Location.hasServicesEnabledAsync();
+      if (!locationEnabled) {
+        Alert.alert(
+          'Location Required',
+          'Please turn on your device location (GPS) to mark attendance.',
+          [{ text: 'OK', style: 'default' }]
+        );
+        setSwipeResetKey((prev) => prev + 1);
+        return;
+      }
+      // Also check if permission is granted
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+        if (newStatus !== 'granted') {
+          Alert.alert(
+            'Location Permission Required',
+            'Location permission is needed to verify you are on campus. Please enable it in Settings.',
+            [{ text: 'OK', style: 'default' }]
+          );
+          setSwipeResetKey((prev) => prev + 1);
+          return;
+        }
+      }
+    } catch {
+      // If we can't check, proceed — backend will validate
+    }
 
     // Check if punching out before 8 hours
     if (punchMode === 'punch-out' && todayCheckIn) {

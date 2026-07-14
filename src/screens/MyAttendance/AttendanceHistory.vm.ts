@@ -61,7 +61,7 @@ export function useAttendanceHistoryVM() {
           getLeaveSummary(user.id, selectedYear),
           getLeaveRequests(user.id),
         ]);
-        
+
         setAllRecords(attendanceData.records ?? []);
         setTotalDaysFromApi(attendanceData.total_days ?? 0);
         setPresentDaysFromApi(attendanceData.present_days ?? 0);
@@ -120,14 +120,14 @@ export function useAttendanceHistoryVM() {
     return leaveRequests.filter((leave) => {
       if (leave.leave_mode !== 'paid') return false;
       if (leave.approval_status !== 'approved') return false;
-      
+
       const fromDate = new Date(leave.from_date);
       const toDate = new Date(leave.to_date);
-      
+
       // Check if the leave falls within the selected month/year
       const selectedMonthStart = new Date(selectedYear, selectedMonth, 1);
       const selectedMonthEnd = new Date(selectedYear, selectedMonth + 1, 0);
-      
+
       // Check if there's any overlap between leave dates and selected month
       return (
         (fromDate <= selectedMonthEnd && toDate >= selectedMonthStart)

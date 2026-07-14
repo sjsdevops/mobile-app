@@ -344,7 +344,8 @@ const statStyles = StyleSheet.create({
 
 // ─── Shared Header ────────────────────────────────────────────────────────────
 
-function ScreenHeader({ onBack }: { onBack: () => void }) {
+function ScreenHeader({ onBack, className, sectionName }: { onBack: () => void; className?: string; sectionName?: string }) {
+  const label = className && sectionName ? `Today ${className} - ${sectionName}` : 'Today';
   return (
     <>
       <View style={sharedStyles.header}>
@@ -357,7 +358,7 @@ function ScreenHeader({ onBack }: { onBack: () => void }) {
         </TouchableOpacity>
         <View style={sharedStyles.headerCenter}>
           <Text style={sharedStyles.headerTitle}>Attendance</Text>
-          <Text style={sharedStyles.headerSub}>Today Class 8-B</Text>
+          <Text style={sharedStyles.headerSub}>{label}</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
@@ -423,8 +424,35 @@ function StepMark({
         />
       </View>
 
-      {/* Bottom buttons */}
-      {!vm.canApproveAttendance && (
+      {/* Bottom buttons — always show "All Present"; show approve or review+submit based on role */}
+      {vm.canApproveAttendance ? (
+        <View style={[styles.bottomRow, { paddingBottom: insets.bottom + 12 }]}>
+          <TouchableOpacity
+            style={styles.outlineBtn}
+            onPress={vm.markAllPresent}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.outlineBtnText}>All Present</Text>
+          </TouchableOpacity>
+
+          {vm.alreadyApproved ? (
+            <View style={[styles.primaryBtn, { backgroundColor: colors.green[200] }]}>
+              <Text style={styles.primaryBtnText}>✓ Approved</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.primaryBtn, { backgroundColor: '#1fc16b' }]}
+              onPress={vm.approveAttendance}
+              disabled={vm.approving}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryBtnText}>
+                {vm.approving ? 'Approving...' : 'Approve'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
         <View style={[styles.bottomRow, { paddingBottom: insets.bottom + 12 }]}>
           <TouchableOpacity
             style={styles.outlineBtn}
@@ -448,28 +476,6 @@ function StepMark({
               </TouchableOpacity>
             );
           })()}
-        </View>
-      )}
-      {vm.canApproveAttendance && (
-        <View style={[styles.approveSection, { paddingBottom: insets.bottom + 12 }]}>
-          {vm.alreadyApproved ? (
-            // All approved, nothing edited — static approved state
-            <View style={[styles.approveBtn, { backgroundColor: colors.green[200] }]}>
-              <Text style={styles.primaryBtnText}>✓ Attendance Approved</Text>
-            </View>
-          ) : (
-            // Either first approval or coordinator edited after approving
-            <TouchableOpacity
-              style={[styles.approveBtn, { backgroundColor: '#1fc16b' }]}
-              onPress={vm.approveAttendance}
-              disabled={vm.approving}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.primaryBtnText}>
-                {vm.approving ? 'Approving...' : 'Approve Attendance'}
-              </Text>
-            </TouchableOpacity>
-          )}
         </View>
       )}
     </View>
@@ -569,7 +575,7 @@ function StepDone({
 
       <Text style={styles.doneTitle}>Attendance Submitted</Text>
       <Text style={styles.doneSub}>
-        Attendance for Class - 8 B Section{'\n'}has been successfully recorded for today
+        Attendance for {vm.className} - {vm.sectionName}{'\n'}has been successfully recorded for today
       </Text>
 
       {/* Stats */}
@@ -614,7 +620,7 @@ export function ClassAttendance() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.surface.light} />
 
-      <ScreenHeader onBack={handleBack} />
+      <ScreenHeader onBack={handleBack} className={vm.className} sectionName={vm.sectionName} />
 
       {/* Step indicator */}
       <View style={styles.stepCard}>
@@ -624,16 +630,16 @@ export function ClassAttendance() {
       {vm.step === 1 && <StepMark vm={vm} />}
       {vm.step === 2 && <StepReview vm={vm} />}
       {(vm.step === 3 || vm.step === 4) && (
-        <StepDone 
-          vm={vm} 
-          onDashboard={() => router.replace('/(tabs)')} 
+        <StepDone
+          vm={vm}
+          onDashboard={() => router.replace('/(tabs)')}
           onViewReport={() => router.push({
             pathname: '/view-attendance',
             params: {
               classId: vm.classId,
               sectionId: vm.sectionId,
             }
-          })} 
+          })}
         />
       )}
     </SafeAreaView>
