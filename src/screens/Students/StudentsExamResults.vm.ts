@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { getStudentProfile } from '../../services/profileService';
+import { getStudentAttendanceHistory } from '../../services/attendanceService';
 
 export interface ExamSubject {
   subject: string;
   max: number;
   obtained: number;
   grade: string;
+  attendance?: 'present' | 'absent';
+  examDate?: string | null;
 }
 
 export interface ExamResult {
@@ -44,7 +47,10 @@ export function useStudentsExamResultsVM(studentId: string | undefined) {
     const fetchResults = async () => {
       setLoading(true);
       try {
-        const profile = await getStudentProfile(studentId);
+        const [profile, attendanceHistory] = await Promise.all([
+          getStudentProfile(studentId),
+          getStudentAttendanceHistory(studentId).catch(() => null),
+        ]);
 
         setStudentName(`${profile.first_name} ${profile.last_name}`.trim());
         setStudentRoll(profile.academic_info?.roll_no ?? '-');
@@ -53,6 +59,14 @@ export function useStudentsExamResultsVM(studentId: string | undefined) {
             ? `${profile.academic_info.class_name} - ${profile.academic_info.section_name}`
             : '-'
         );
+
+        // Build date-based attendance lookup
+        const attendanceByDate: Record<string, 'present' | 'absent'> = {};
+        if (attendanceHistory) {
+          for (const record of attendanceHistory.records) {
+            attendanceByDate[record.date] = record.is_present ? 'present' : 'absent';
+          }
+        }
 
         // Map exam_results from API to ExamSection format
         const sections: ExamSection[] = [];
@@ -78,12 +92,17 @@ export function useStudentsExamResultsVM(studentId: string | undefined) {
           }>;
 
           for (const exam of examResults) {
-            const subjects: ExamSubject[] = exam.marks.map((m) => ({
-              subject: m.subject_name,
-              max: m.total_marks,
-              obtained: m.obtained_marks ?? 0,
-              grade: m.grade ?? '-',
-            }));
+            const subjects: ExamSubject[] = exam.marks.map((m) => {
+              const attStatus = m.exam_date ? attendanceByDate[m.exam_date] ?? undefined : undefined;
+              return {
+                subject: m.subject_name,
+                max: m.total_marks,
+                obtained: m.obtained_marks ?? 0,
+                grade: m.grade ?? '-',
+                attendance: attStatus,
+                examDate: m.exam_date,
+              };
+            });
 
             const totalMax = subjects.reduce((sum, s) => sum + s.max, 0);
             const totalObtained = subjects.reduce((sum, s) => sum + s.obtained, 0);

@@ -15,7 +15,7 @@ import { colors } from '../../theme/colors';
 import { useThemeColors } from '../../theme/ThemeContext';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
 import { useAuth } from '../../contexts/AuthContext';
-import { ExamSection, ExamResult, useStudentsExamResultsVM } from './StudentsExamResults.vm';
+import { ExamSection, ExamResult, ExamSubject, useStudentsExamResultsVM } from './StudentsExamResults.vm';
 
 interface SchoolInfo {
   name: string;
@@ -149,7 +149,7 @@ function StudentCard({ student }: { student: StudentInfo }) {
   );
 }
 
-function ResultRow({ subject, max, obtained, grade }: { subject: string; max: number; obtained: number; grade: string }) {
+function ResultRow({ subject, max, obtained, grade, attendance }: ExamSubject) {
   return (
     <View style={styles.tableRow}>
       <Text style={[styles.tableCell, styles.subjectCell]}>{subject}</Text>
@@ -158,6 +158,13 @@ function ResultRow({ subject, max, obtained, grade }: { subject: string; max: nu
       <View style={styles.tableCellContainer}>
         <Text style={styles.gradeBadge}>{grade}</Text>
       </View>
+      {attendance && (
+        <View style={[styles.attStatusBadge, attendance === 'absent' ? styles.attAbsent : styles.attPresent]}>
+          <Text style={[styles.attStatusText, attendance === 'absent' ? { color: colors.secondary[300] } : { color: colors.green[200] }]}>
+            {attendance === 'absent' ? 'A' : 'P'}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -641,6 +648,23 @@ const styles = StyleSheet.create({
     color: colors.neutral[900],
     fontFamily: 'System',
     minHeight: 100,
+  },
+  attStatusBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attPresent: {
+    backgroundColor: '#ECFDF5',
+  },
+  attAbsent: {
+    backgroundColor: '#FEF2F2',
+  },
+  attStatusText: {
+    fontSize: 10,
+    fontWeight: '700',
   },
 
   // Submit Button

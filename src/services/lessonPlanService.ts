@@ -19,7 +19,7 @@ export interface LessonItem {
     end_date: string | null;
     learning_objectives: string | null;
     file_url: string | null;
-    status: 'not_started' | 'on_pending' | 'completed';
+    status: 'not_started' | 'on_pending' | 'completed' | 'approved';
     assessment_type: string | null;
     created_at: string;
     modified_at: string;

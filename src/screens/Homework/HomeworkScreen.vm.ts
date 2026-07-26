@@ -162,10 +162,12 @@ export function useHomeworkVM() {
         (async () => {
             setLoading(true);
             try {
+                const isStudent = user.role === 'student';
                 const data = await getHomeworks({
                     classId: selectedClass,
                     sectionId: selectedSection,
                     subjectId: selectedSubject || undefined,
+                    ...(isStudent ? { status: 'approved' } : {}),
                 });
                 setHomeworks(data);
             } catch {

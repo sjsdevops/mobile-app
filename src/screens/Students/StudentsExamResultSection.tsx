@@ -14,7 +14,7 @@ import Svg, { Circle, Path, Text as SvgText } from 'react-native-svg';
 import { colors } from '../../theme/colors';
 import { useThemeColors } from '../../theme/ThemeContext';
 import { ScreenHeader } from '../../components/ui/ScreenHeader';
-import { ExamSection, ExamResult, useStudentsExamResultsVM } from './StudentsExamResults.vm';
+import { ExamSection, ExamResult, ExamSubject, useStudentsExamResultsVM } from './StudentsExamResults.vm';
 
 interface SchoolInfo {
   name: string;
@@ -202,13 +202,20 @@ function StudentCard({ student }: { student: StudentInfo }) {
   );
 }
 
-function ResultRow({ subject, max, obtained, grade }: { subject: string; max: number; obtained: number; grade: string }) {
+function ResultRow({ subject, max, obtained, grade, attendance }: ExamSubject) {
   return (
     <View style={styles.tableRow}>
       <Text style={[styles.tableCell, styles.subjectCell]}>{subject}</Text>
       <Text style={[styles.tableCell, styles.numberCell]}>{max}</Text>
       <Text style={[styles.tableCell, styles.numberCell]}>{obtained}</Text>
       <Text style={[styles.tableCell, styles.gradeCell]}>{grade}</Text>
+      {attendance && (
+        <View style={[styles.attendanceDot, attendance === 'absent' ? styles.attDotAbsent : styles.attDotPresent]}>
+          <Text style={[styles.attendanceDotText, attendance === 'absent' ? { color: colors.secondary[300] } : { color: colors.green[200] }]}>
+            {attendance === 'absent' ? 'A' : 'P'}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -225,6 +232,7 @@ function ExamReportSection({ title, result, dynStyles }: { title: string; result
           <Text style={[styles.tableHeaderCell, styles.numberCell]}>Max</Text>
           <Text style={[styles.tableHeaderCell, styles.numberCell]}>Obtained</Text>
           <Text style={[styles.tableHeaderCell, styles.gradeCellHeader]}>Grade</Text>
+          <Text style={[styles.tableHeaderCell, styles.attCellHeader]}>Att</Text>
         </View>
         {result.subjects.map((subject) => (
           <ResultRow
@@ -554,6 +562,27 @@ const styles = StyleSheet.create({
   gradeCellHeader: {
     flex: 1,
     textAlign: 'right',
+  },
+  attCellHeader: {
+    width: 30,
+    textAlign: 'center',
+  },
+  attendanceDot: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attDotPresent: {
+    backgroundColor: '#ECFDF5',
+  },
+  attDotAbsent: {
+    backgroundColor: '#FEF2F2',
+  },
+  attendanceDotText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   totalText: {
     fontWeight: '700',

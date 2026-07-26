@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   getTeacherExams,
+  getStudentExams,
   bulkSaveMarks,
   type ExamSubjectEntry,
   type ExamStudentMark,
 } from '../../services/examService';
 import { getAllClasses } from '../../services/classService';
+import { getClassAttendance } from '../../services/attendanceService';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,6 +29,9 @@ export type ExamItem = {
   gradedCount: number;
   examSubjectId: string;
   students: ExamStudentMark[];
+  classId: string;
+  sectionId: string;
+  examDate: string | null;
 };
 
 export type ExamStudent = {
@@ -81,22 +87,30 @@ export function useExamVM() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isCoordinatorForSection, setIsCoordinatorForSection] = useState(false);
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, 'present' | 'absent'>>({});
 
-  // Fetch teacher exams from API
+  // Fetch exams (teacher or student)
   const fetchExams = async () => {
-    if (!user || user.role === 'student') {
-      console.log('[Exam] Skip fetch - no user or student role');
+    if (!user) {
+      console.log('[Exam] Skip fetch - no user');
       return;
     }
-    console.log('[Exam] Fetching exams for:', user.id);
+    console.log('[Exam] Fetching exams for:', user.id, 'role:', user.role, 'at', new Date().toISOString());
     setLoading(true);
     try {
-      const data = await getTeacherExams(user.id);
+      const isStudent = user.role === 'student';
+      const data = isStudent ? await getStudentExams(user.id) : await getTeacherExams(user.id);
       const items: ExamItem[] = [];
 
       for (const cls of data.classes ?? []) {
         for (const section of cls.sections ?? []) {
           for (const subject of section.subjects ?? []) {
+            // For students, only show subjects where their mark is verified
+            if (isStudent) {
+              const studentMark = subject.students?.[0];
+              if (!studentMark || studentMark.status !== 'verified') continue;
+            }
+
             const status = deriveExamStatus(subject.students);
             const gradedCount = subject.students.filter((s) => s.obtained_marks !== null).length;
 
@@ -112,6 +126,9 @@ export function useExamVM() {
               gradedCount,
               examSubjectId: subject.exam_subject_id,
               students: subject.students,
+              classId: cls.class_id,
+              sectionId: section.section_id,
+              examDate: subject.exam_date,
             });
           }
         }
@@ -126,9 +143,13 @@ export function useExamVM() {
     }
   };
 
-  useEffect(() => {
-    fetchExams();
-  }, [user]);
+  useFocusEffect(
+    useCallback(() => {
+      if (view === 'list' && user) {
+        fetchExams();
+      }
+    }, [view, user]),
+  );
 
   // Students for the selected exam
   const students: ExamStudent[] = useMemo(() => {
@@ -181,7 +202,7 @@ export function useExamVM() {
     setCommentsState((prev) => ({ ...prev, [studentId]: value }));
   }
 
-  function openExam(exam: ExamItem) {
+  async function openExam(exam: ExamItem) {
     setSelectedExam(exam);
     setSearchQuery('');
 
@@ -196,6 +217,32 @@ export function useExamVM() {
         existingComments[s.student_id] = s.remarks;
       }
     }
+
+    // Fetch attendance for the exam date and pre-fill 0 for absent students
+    const attMap: Record<string, 'present' | 'absent'> = {};
+    console.log('[Exam] openExam - classId:', exam.classId, 'sectionId:', exam.sectionId, 'examDate:', exam.examDate);
+    if (exam.classId && exam.sectionId) {
+      try {
+        const attendance = await getClassAttendance(exam.classId, exam.sectionId, exam.examDate ?? undefined);
+        console.log('[Exam] Attendance response:', attendance?.items?.length, 'items');
+        for (const item of attendance.items) {
+          if (item.status === 'present') {
+            attMap[item.student_id] = 'present';
+          } else if (item.status === 'absent') {
+            attMap[item.student_id] = 'absent';
+            if (existingMarks[item.student_id] === undefined) {
+              existingMarks[item.student_id] = '0';
+            }
+          }
+          // not_marked → skip, no badge shown
+        }
+      } catch (error) {
+        console.error('[Exam] Failed to fetch attendance:', error);
+      }
+    } else {
+      console.warn('[Exam] Skipping attendance fetch - missing classId/sectionId');
+    }
+    setAttendanceMap(attMap);
     setMarksState(existingMarks);
     setCommentsState(existingComments);
 
@@ -343,6 +390,7 @@ export function useExamVM() {
     avgMark,
     marks,
     comments,
+    attendanceMap,
     filteredExams,
     setMark,
     setComment,

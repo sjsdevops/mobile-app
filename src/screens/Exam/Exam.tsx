@@ -146,7 +146,7 @@ function ExamCard({
 
 function StudentExamList({ vm }: { vm: ReturnType<typeof useExamVM> }) {
   const router = useRouter();
-  const upcomingExams = vm.filteredExams.filter((e) => e.status === 'not-started');
+  const exams = vm.filteredExams;
 
   function Section({
     title,
@@ -165,13 +165,13 @@ function StudentExamList({ vm }: { vm: ReturnType<typeof useExamVM> }) {
               <View style={listStyles.cardInfo}>
                 <Text style={listStyles.examName}>{exam.name}</Text>
                 <Text style={listStyles.examMeta}>
-                  Class {exam.className} | {exam.studentCount} Students
+                  Class {exam.className} | {exam.maxMarks} Max Marks
                 </Text>
               </View>
             </View>
             <View style={listStyles.cardDivider} />
             <View style={listStyles.cardBottomRow}>
-              <Text style={listStyles.progressText}>Upcoming</Text>
+              <Text style={listStyles.progressText}>Published</Text>
             </View>
           </View>
         ))}
@@ -193,10 +193,10 @@ function StudentExamList({ vm }: { vm: ReturnType<typeof useExamVM> }) {
         contentContainerStyle={listStyles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <Section title="Upcoming Exams" data={upcomingExams} />
-        {upcomingExams.length === 0 && (
+        <Section title="Published Exams" data={exams} />
+        {exams.length === 0 && (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No upcoming exams</Text>
+            <Text style={styles.emptyText}>No published exams yet</Text>
           </View>
         )}
       </ScrollView>
@@ -273,6 +273,7 @@ function StudentMarkRow({
   comment,
   maxMarks,
   readonly,
+  attendance,
   onChangeMark,
   onChangeComment,
 }: {
@@ -281,26 +282,37 @@ function StudentMarkRow({
   comment: string;
   maxMarks: number;
   readonly?: boolean;
+  attendance?: 'present' | 'absent';
   onChangeMark?: (v: string) => void;
   onChangeComment?: (v: string) => void;
 }) {
   const hasmark = mark.trim() !== '';
   const markNum = hasmark ? Number(mark) : null;
   const isFail = markNum !== null && markNum < 35;
+  const isAbsent = attendance === 'absent';
 
   return (
     <>
       <View style={enterStyles.row}>
         {/* Avatar */}
-        <View style={enterStyles.avatar}>
-          <Text style={enterStyles.avatarText}>
+        <View style={[enterStyles.avatar, isAbsent && enterStyles.avatarAbsent]}>
+          <Text style={[enterStyles.avatarText, isAbsent && { color: colors.neutral[400] }]}>
             {student.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}
           </Text>
         </View>
 
         {/* Info */}
         <View style={enterStyles.info}>
-          <Text style={enterStyles.studentName}>{student.name}</Text>
+          <View style={enterStyles.nameRow}>
+            <Text style={[enterStyles.studentName, isAbsent && { color: colors.neutral[400] }]}>{student.name}</Text>
+            {attendance && (
+              <View style={[enterStyles.attendanceBadge, isAbsent ? enterStyles.attendanceAbsent : enterStyles.attendancePresent]}>
+                <Text style={[enterStyles.attendanceBadgeText, isAbsent ? { color: colors.secondary[300] } : { color: colors.green[200] }]}>
+                  {isAbsent ? 'Absent' : 'Present'}
+                </Text>
+              </View>
+            )}
+          </View>
           <Text style={enterStyles.rollNo}>Roll No: {student.rollNo}</Text>
         </View>
 
@@ -325,7 +337,7 @@ function StudentMarkRow({
           /* Editable view */
           <View style={enterStyles.marksBox}>
             <TextInput
-              style={[enterStyles.markInput, isFail && enterStyles.markInputFail, isFail && { color: colors.secondary[300] }]}
+              style={[enterStyles.markInput, (isFail || isAbsent) && { color: colors.neutral[400] }, isFail && enterStyles.markInputFail, isAbsent && enterStyles.markInputAbsent]}
               value={mark}
               onChangeText={onChangeMark}
               keyboardType="number-pad"
@@ -431,6 +443,7 @@ function EnterMarks({ vm }: { vm: ReturnType<typeof useExamVM> }) {
               comment={vm.comments[item.id] ?? ''}
               maxMarks={exam.maxMarks}
               readonly={isReadonlyForTeacher}
+              attendance={vm.attendanceMap[item.id]}
               onChangeMark={(v) => vm.setMark(item.id, v)}
               onChangeComment={(v) => vm.setComment(item.id, v)}
             />
@@ -538,6 +551,7 @@ function PreviewSubmission({ vm }: { vm: ReturnType<typeof useExamVM> }) {
               comment=""
               maxMarks={exam.maxMarks}
               readonly
+              attendance={vm.attendanceMap[student.id]}
             />
           ))}
         </View>
@@ -905,17 +919,40 @@ const enterStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  avatarAbsent: {
+    backgroundColor: '#FEF2F2',
+  },
   avatarText: {
     fontSize: 13,
     fontWeight: '700',
     color: colors.neutral[600],
   },
   info: { flex: 1 },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   studentName: {
     fontSize: 15,
     fontWeight: '700',
     color: colors.neutral[900],
     marginBottom: 2,
+  },
+  attendanceBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  attendancePresent: {
+    backgroundColor: '#ECFDF5',
+  },
+  attendanceAbsent: {
+    backgroundColor: '#FEF2F2',
+  },
+  attendanceBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
   },
   rollNo: {
     fontSize: 12,
@@ -956,6 +993,10 @@ const enterStyles = StyleSheet.create({
   markInputFail: {
     borderColor: colors.secondary[300],
     backgroundColor: 'rgba(228,37,39,0.06)',
+  },
+  markInputAbsent: {
+    borderColor: colors.neutral[300],
+    backgroundColor: '#F9FAFB',
   },
   markValueFail: {
     color: colors.secondary[300],

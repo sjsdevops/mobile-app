@@ -19,7 +19,7 @@ export type SubjectProgress = { id: string; name: string; completedLessons: numb
 export type DropdownOption = { id: string; label: string };
 
 function mapStatus(status: string): 'completed' | 'inprogress' | 'notstarted' {
-  if (status === 'completed') return 'completed';
+  if (status === 'completed' || status === 'approved') return 'completed';
   if (status === 'on_pending') return 'inprogress';
   return 'notstarted';
 }
@@ -89,10 +89,15 @@ export function useLessonPlanVM() {
             }]);
             if (sectionSubjects.length > 0) setSelectedSubject(sectionSubjects[0].subject_id);
 
-            // Fetch lessons for this section
+            // Fetch lessons for this section — students see only completed/approved
             const lessonsResp = await api.get(`/mobile/lessons/class/${classId}/section/${sectionId}`);
             const lessonsData = lessonsResp.data?.data ?? lessonsResp.data;
-            setLessons(lessonsData?.items ?? []);
+            const allItems: LessonItem[] = lessonsData?.items ?? [];
+            if (user.role === 'student') {
+              setLessons(allItems.filter((l) => l.status === 'completed' || l.status === 'approved'));
+            } else {
+              setLessons(allItems);
+            }
           }
 
           const yearsData = await getAcademicYears();

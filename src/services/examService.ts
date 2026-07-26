@@ -69,6 +69,13 @@ export async function getTeacherExams(employeeId: string): Promise<TeacherExamsR
     return data;
 }
 
+/** Get all exams for a student */
+export async function getStudentExams(studentId: string): Promise<TeacherExamsResponse> {
+    const response = await api.get(`/mobile/student/${studentId}/exams`);
+    const data = response.data?.data ?? response.data;
+    return data;
+}
+
 /** Bulk create/update marks */
 export async function bulkSaveMarks(payload: BulkMarksPayload): Promise<void> {
     await api.post('/mobile/exams/marks/bulk', payload);
