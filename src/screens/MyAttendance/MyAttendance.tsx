@@ -213,7 +213,19 @@ function HomeView({
             <Text style={styles.swipeText}>✓ Attendance Complete</Text>
           </View>
         ) : (
-          <SwipePunchButton key={vm.swipeResetKey} onComplete={vm.onSwipePunchIn} label={vm.swipeLabel} />
+          <>
+            <SwipePunchButton key={vm.swipeResetKey} onComplete={vm.onSwipePunchIn} label={vm.swipeLabel} />
+            <TouchableOpacity
+              style={styles.scanQrBtn}
+              onPress={() => router.push(`/qr-scanner?mode=${vm.punchMode}`)}
+              activeOpacity={0.7}
+            >
+              <Scan color={colors.primary[300]} size={18} variant="Bold" />
+              <Text style={styles.scanQrBtnText}>
+                Scan QR to {vm.punchMode === 'punch-in' ? 'Punch In' : 'Punch Out'}
+              </Text>
+            </TouchableOpacity>
+          </>
         )}
       </View>
       <View style={{ height: 32 }} />
@@ -623,6 +635,25 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary[300],
     lineHeight: 26,
+  },
+  scanQrBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    backgroundColor: colors.primary.alpha,
+    borderWidth: 1,
+    borderColor: colors.primary[300],
+    alignSelf: 'stretch',
+  },
+  scanQrBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary[300],
   },
 
   // ── Map / Confirm ──

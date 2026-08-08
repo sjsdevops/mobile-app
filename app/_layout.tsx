@@ -20,6 +20,8 @@ export default function RootLayout() {
               <Stack.Screen name="attendance" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="view-attendance" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="my-attendance" options={{ headerShown: false, animation: 'slide_from_right' }} />
+              <Stack.Screen name="qr-attendance" options={{ headerShown: false, gestureEnabled: false, animation: 'fade' }} />
+              <Stack.Screen name="qr-scanner" options={{ headerShown: false, gestureEnabled: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="attendance-history" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="student-info" options={{ headerShown: false, animation: 'slide_from_right' }} />
               <Stack.Screen name="case-study" options={{ headerShown: false, animation: 'slide_from_right' }} />

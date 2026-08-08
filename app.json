@@ -2,7 +2,7 @@
   "expo": {
     "name": "SJS",
     "slug": "school-erp-mobile-app",
-    "version": "1.0.5",
+    "version": "1.1.2",
     "scheme": "schoolerp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,6 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.sreejayam.schoolerp",
       "infoPlist": {
+        "NSCameraUsageDescription": "Jayam 360 uses your camera to scan the attendance QR code.",
         "NSLocationWhenInUseUsageDescription": "Jayam 360 uses your location to verify and record attendance at your school.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Jayam 360 uses your location to verify and record attendance at your school.",
         "NSAppTransportSecurity": {
@@ -54,6 +55,12 @@
       "expo-router",
       "@react-native-community/datetimepicker",
       "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Jayam 360 uses your camera to scan the attendance QR code."
+        }
+      ],
       [
         "expo-location",
         {

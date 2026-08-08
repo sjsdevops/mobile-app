@@ -48,6 +48,8 @@ export function LoginScreen() {
       });
 
       router.replace('/(tabs)');
+    } else if (result.success && result.qrDisplay) {
+      router.replace('/qr-attendance');
     }
   }
 

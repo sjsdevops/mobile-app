@@ -15,14 +15,27 @@ export function useLoginVM() {
       ? 'Enter a valid email address'
       : null;
 
-  const canSubmit = email.trim().length > 0 && password.length > 0 && !emailError;
+  // Special kiosk credentials that open the QR attendance display instead of a login.
+  const isQrDisplayCredential =
+    email.trim().toLowerCase() === 'attendance' && password === 'mark';
+
+  const canSubmit =
+    email.trim().length > 0 && password.length > 0 && (!emailError || isQrDisplayCredential);
+
+  const displayEmailError = isQrDisplayCredential ? null : emailError;
 
   async function handleLogin(): Promise<{
     success: boolean;
+    qrDisplay?: boolean;
     user?: AuthUser;
     permissions?: RolePermission[];
   }> {
     if (!canSubmit) return { success: false };
+
+    if (isQrDisplayCredential) {
+      return { success: true, qrDisplay: true };
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -61,7 +74,7 @@ export function useLoginVM() {
     setShowPassword,
     loading,
     error,
-    emailError,
+    emailError: displayEmailError,
     canSubmit,
     handleLogin,
   };

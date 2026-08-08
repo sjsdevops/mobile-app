@@ -120,6 +120,7 @@ export interface MarkEmployeeSelfPayload {
     check_in?: string;
     check_out?: string;
     location?: string;
+    attendance_type?: 'QR' | 'MANUAL';
     created_by: string;
     modified_by: string;
 }
