@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
   primaryBtn: {
     alignSelf: 'stretch',
     backgroundColor: colors.primary[300],
-    borderRadius: 14,
+    borderRadius: 30,
     paddingVertical: 16,
     alignItems: 'center',
   },

@@ -2,7 +2,7 @@
   "expo": {
     "name": "SJS",
     "slug": "school-erp-mobile-app",
-    "version": "1.1.2",
+    "version": "1.1.3",
     "scheme": "schoolerp",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
