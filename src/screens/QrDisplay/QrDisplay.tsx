@@ -7,7 +7,6 @@ import {
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Setting3 } from 'iconsax-react-nativejs';
 import { colors } from '../../theme/colors';
 import { useQrDisplayVM } from './QrDisplay.vm';
 
@@ -27,7 +26,7 @@ export function QrDisplayScreen() {
         <Text style={styles.title}>Attendance QR</Text>
         <Text style={styles.subtitle}>Scan to mark your attendance</Text>
 
-        <View style={styles.qrCard}>
+        <View style={styles.qrCard} {...vm.panResponder.panHandlers}>
           <QRCode
             value={vm.qrPayload}
             size={240}
@@ -50,16 +49,6 @@ export function QrDisplayScreen() {
             </Text>
           </View>
         </View>
-
-        {/* In-screen settings to change the refresh interval */}
-        <TouchableOpacity
-          style={styles.settingsBtn}
-          onPress={() => vm.setSettingsOpen(true)}
-          activeOpacity={0.85}
-        >
-          <Setting3 color={colors.primary[300]} size={18} variant="Bold" />
-          <Text style={styles.settingsBtnText}>Change Refresh Time</Text>
-        </TouchableOpacity>
 
         <Modal
           visible={vm.settingsOpen}
@@ -174,21 +163,6 @@ const styles = StyleSheet.create({
     color: colors.neutral[900],
   },
   countdownValue: {
-    color: colors.primary[300],
-  },
-  settingsBtn: {
-    marginTop: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 14,
-    backgroundColor: colors.primary.alpha,
-  },
-  settingsBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
     color: colors.primary[300],
   },
   modalBackdrop: {
